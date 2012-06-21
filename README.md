@@ -56,10 +56,10 @@ Let's see what we have here:
 - "version", it's a version of the dealer configuration file.
 - "services" object is where you describe each of your apps.
 - "image_processor_service" it's an alias to your app, you use this alias to send tasks to app as described below.
-- "image_processor" - actual name of the app in the cloud.
+- "image_processor" — actual name of the app in the cloud.
 - "autodiscovery" section. That section tells dealer where to get the list of the cocaine nodes with deployed app.
 - "type" — type of the source, in our case we specify that list of the hosts is stored locally in some file.
-- "source" - path to the file that consists list of cocaine hosts. In our case that file will have only one line — "192.168.0.2"
+- "source" — path to image_processor.hosts
 
 Ok, then what? Write an app!
 
