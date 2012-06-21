@@ -25,8 +25,16 @@ A motivating example
 
 Let's say you have a single cocaine node with a single app deployed. Let's say machine's ip is 192.168.0.2 and there is an app with name "image_processor" which has one handle "resize". 
 
-First we need to write dealer configuration file, it's in plain old JSON:
+First we need to create the file with the list of hosts where app is deployed.
 
+image_processor.hosts file:
+```txt
+192.168.0.2
+```
+
+Then we need to write dealer configuration file, it's in plain old JSON:
+
+dealer_config.json file:
 ```json
 {
 	"version" : 1,
@@ -37,7 +45,7 @@ First we need to write dealer configuration file, it's in plain old JSON:
 			"app" : "image_processor",
 			"autodiscovery" : {
 				"type" : "FILE",
-				"source" : "/path/to/hosts_file"
+				"source" : "/path/to/image_processor.hosts"
 			}
 		}
 	}
@@ -47,11 +55,11 @@ First we need to write dealer configuration file, it's in plain old JSON:
 Let's see what we have here:
 - "version", it's a version of the dealer configuration file.
 - "services" object is where you describe each of your apps.
-- For each service you must have at least an alias to the app, in our case "image_processor_service" and the following:
-- Actual name of the app in the cloud - "image_processor"
+- "image_processor_service" it's an alias to your app, you use this alias to send tasks to app as described below.
+- "image_processor" - actual name of the app in the cloud.
 - "autodiscovery" section. That section tells dealer where to get the list of the cocaine nodes with deployed app.
 - "type" — type of the source, in our case we specify that list of the hosts is stored locally in some file.
-- "source" - path to the file that consists list of cocaine hosts. In our case that file have only one line — "192.168.0.2"
+- "source" - path to the file that consists list of cocaine hosts. In our case that file will have only one line — "192.168.0.2"
 
 Ok, then what? Write an app!
 
