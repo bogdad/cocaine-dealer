@@ -29,7 +29,7 @@ First we need to write dealer configuration file, it's in plain old JSON:
 
 ```json
 {
-	// configuration file version
+	/* configuration file version */
 	"version" : 1,
 
 	"services" :
