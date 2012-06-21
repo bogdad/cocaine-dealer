@@ -74,7 +74,7 @@ using namespace cocaine::dealer;
 int main(int argc, char** argv) {
 
 	// initialise balancer
-	std::string config_path = "path/to/yout/dealer_config.json";
+	std::string config_path = "path/to/your/dealer_config.json";
 	dealer_t dealer(config_path);
 
 	// to which app/handle do we send our task
