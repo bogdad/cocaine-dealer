@@ -29,24 +29,29 @@ First we need to write dealer configuration file, it's in plain old JSON:
 
 ```json
 {
-	/* configuration file version */
 	"version" : 1,
 
 	"services" :
 	{
-		// alias to application
     	"image_processor_service" : {
-			"app" : "image_processor",    // actual app name
+			"app" : "image_processor",
 			"autodiscovery" : {
 				"type" : "FILE",
-
-				// file with the list of hosts where "image_processor" app is deployed
 				"source" : "/path/to/hosts_file"
 			}
 		}
 	}
 }
 ```
+
+Let's see what we have here:
+- "version", it's a version of the dealer configuration file.
+- "services" object is where you describe each of your apps.
+- For each service you must have at least an alias to the app, in our case "image_processor_service" and the following:
+- Actual name of the app in the cloud - "image_processor"
+- "autodiscovery" section. That section tells dealer where to get the list of the cocaine nodes with deployed app.
+- "type" — type of the source, in our case we specify that list of the hosts is stored locally in some file.
+- "source" - path to the file that consists list of cocaine hosts. In our case that file have only one line — "192.168.0.2"
 
 Ok, then what? Write an app!
 
