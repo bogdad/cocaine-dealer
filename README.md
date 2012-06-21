@@ -61,7 +61,7 @@ Let's see what we have here:
 - "type" — type of the source, in our case we specify that list of the hosts is stored locally in some file.
 - "source" — path to image_processor.hosts
 
-Ok, then what? Write an app!
+Ok, then what? Write some code!
 
 ```c++
 #include <iostream>
