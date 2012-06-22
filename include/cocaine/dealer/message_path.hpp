@@ -21,6 +21,8 @@
 #ifndef _COCAINE_DEALER_MESSAGE_PATH_HPP_INCLUDED_
 #define _COCAINE_DEALER_MESSAGE_PATH_HPP_INCLUDED_
 
+#include <boost/functional/hash.hpp>
+
 #include <msgpack.hpp>
 
 #include <string>

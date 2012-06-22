@@ -21,11 +21,7 @@
 #ifndef _COCAINE_DEALER_TYPES_HPP_INCLUDED_
 #define _COCAINE_DEALER_TYPES_HPP_INCLUDED_
 
-#include <boost/flyweight.hpp>
-
 #include <msgpack.hpp>
-
-#include "cocaine/common.hpp"
 
 namespace cocaine {
 namespace dealer {

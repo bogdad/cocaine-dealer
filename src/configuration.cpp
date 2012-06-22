@@ -279,9 +279,9 @@ configuration_t::parse_services_settings(const Json::Value& config_value) {
 		}
 
 		// check for duplicate services
-		std::map<std::string, service_info_t>::iterator it = m_services_list.begin();
-		for (;it != m_services_list.end(); ++it) {
-			if (it->second.name == si.name) {
+		std::map<std::string, service_info_t>::iterator lit = m_services_list.begin();
+		for (;lit != m_services_list.end(); ++lit) {
+			if (lit->second.name == si.name) {
 				throw internal_error("duplicate service with name " + si.name + " was found in config!");
 			}
 		}
@@ -531,6 +531,9 @@ std::ostream& operator << (std::ostream& out, configuration_t& c) {
 				break;
 			case AT_FILE:
 				out << "\tautodiscovery type: file" << "\n";
+				break;
+			case AT_UNDEFINED:
+				out << "\tautodiscovery type: undefined" << "\n";
 				break;
 		}
 	}
