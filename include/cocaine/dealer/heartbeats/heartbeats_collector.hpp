@@ -49,6 +49,8 @@
 #include "cocaine/dealer/heartbeats/hosts_fetcher_iface.hpp"
 #include "cocaine/dealer/cocaine_node_info/cocaine_node_info.hpp"
 
+#include "cocaine/dealer/utils/uuid.hpp"
+
 namespace cocaine {
 namespace dealer {
 
@@ -79,7 +81,7 @@ private:
 	void log_responded_hosts_handles(const service_info_t& service_info,
 									 const handles_endpoints_t& handles_endpoints);
 
-	static const int hosts_retrieval_interval = 2000; // milliseconds
+	static const int hosts_retrieval_interval = 1; // milliseconds
 	static const int host_socket_ping_timeout = 1500000; // microseconds FIX in zmq 3.1
 
 private:
@@ -95,6 +97,7 @@ private:
 
 	// synchronization
 	boost::mutex m_mutex;
+	wuuid_t m_uuid;
 };
 
 } // namespace dealer

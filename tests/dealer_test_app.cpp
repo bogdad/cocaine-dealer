@@ -39,6 +39,7 @@ void worker(dealer_t* d,
 			int dealer_index)
 {
 	message_path_t path("rimz_app", "rimz_func");
+	//message_path_t path("testing", "method3");
 	message_policy_t policy;
 	policy.deadline = 0.0;
 	policy.max_retries = -1;
@@ -130,6 +131,13 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 
 int
 main(int argc, char** argv) {
+	std::string config_path = "tests/config.json";
+	dealer_t dealer(config_path);
+
+	sleep(600);
+
+	return EXIT_SUCCESS;
+
 	try {
 		options_description desc("Allowed options");
 		desc.add_options()

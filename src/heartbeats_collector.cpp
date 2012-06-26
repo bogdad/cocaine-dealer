@@ -24,14 +24,16 @@
 #include "cocaine/dealer/heartbeats/file_hosts_fetcher.hpp"
 #include "cocaine/dealer/heartbeats/http_hosts_fetcher.hpp"
 #include "cocaine/dealer/cocaine_node_info/cocaine_node_info_parser.hpp"
-#include "cocaine/dealer/utils/uuid.hpp"
 
 namespace cocaine {
 namespace dealer {
 
 heartbeats_collector_t::heartbeats_collector_t(const boost::shared_ptr<context_t>& ctx,
 											   bool logging_enabled) :
-	dealer_object_t(ctx, logging_enabled) {}
+	dealer_object_t(ctx, logging_enabled)
+{
+	m_uuid.generate();
+}
 
 heartbeats_collector_t::~heartbeats_collector_t() {
 	stop();
@@ -277,13 +279,12 @@ heartbeats_collector_t::get_metainfo_from_endpoint(const inetv4_endpoint_t& endp
 	std::string connection_str = "tcp://" + host_ip_str + ":";
 	connection_str += boost::lexical_cast<std::string>(endpoint.port);
 
-	int timeout = 0;
+	int timeout = -1;
 	zmq_socket->setsockopt(ZMQ_LINGER, &timeout, sizeof(timeout));
 
-	wuuid_t uuid;
-	uuid.generate();
-	zmq_socket->setsockopt(ZMQ_IDENTITY, uuid.str().c_str(), uuid.str().length());
-	
+	//m_uuid.generate();
+	zmq_socket->setsockopt(ZMQ_IDENTITY, m_uuid.str().c_str(), m_uuid.str().length());
+
 	zmq_socket->connect(connection_str.c_str());
 
 	// send request for cocaine metadata
