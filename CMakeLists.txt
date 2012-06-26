@@ -10,7 +10,6 @@ CONFIGURE_FILE(
 
 FIND_PACKAGE(Boost 1.34.1 REQUIRED
     COMPONENTS
-        filesystem
         program_options
         thread)
 
@@ -62,7 +61,6 @@ ADD_LIBRARY(cocaine-dealer SHARED
 
 TARGET_LINK_LIBRARIES(cocaine-dealer
     boost_thread-mt
-    boost_filesystem-mt
     crypto
     curl
     json
