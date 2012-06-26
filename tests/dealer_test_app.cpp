@@ -31,7 +31,7 @@ void worker(dealer_t* d,
 			std::vector<int>* dealer_messages_count,
 			int dealer_index)
 {
-	message_path_t path("rimz_app", "my-super-handle");
+	message_path_t path("rimz_app", "rimz_func");
 	message_policy_t policy;
 	policy.deadline = 0.0;
 	policy.max_retries = -1;
@@ -66,7 +66,7 @@ void worker(dealer_t* d,
 }
 
 void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messages_count) {
-	std::string config_path = "tests/config_example.json";
+	std::string config_path = "tests/config.json";
 
 	typedef boost::ptr_vector<boost::thread> thread_pool;
 	typedef boost::ptr_vector<thread_pool> thread_pools_list;

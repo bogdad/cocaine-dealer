@@ -51,7 +51,7 @@
 		//"file" : "/home/rimz/dealer.log",
  
 		"type" : "STDOUT_LOGGER",
-		"flags" : "PLOG_INFO | PLOG_INTRO"
+		"flags" : "PLOG_ALL | PLOG_INTRO"
 		//"flags" : "PLOG_NONE"
 	},
 
@@ -123,7 +123,7 @@
 			"app" : "rimz_app@1",
 			"autodiscovery" : {
 				"type" : "FILE",
-				"source" : "/home/rimz/cocaine-core/tests/hosts"
+				"source" : "/Users/creator/cocaine-dealer/tests/hosts"
 			}
 		}
 		//,

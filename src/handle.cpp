@@ -18,6 +18,8 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>. 
 */
 
+#include <boost/lexical_cast.hpp>
+
 #include "cocaine/dealer/core/handle.hpp"
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/utils/uuid.hpp"
@@ -156,8 +158,8 @@ handle_t::dispatch_next_available_response(balancer_t& balancer) {
 		break;
 
 		case response_code::message_choke:
-			m_message_cache->remove_message_from_cache(response->route(), response->uuid());
 			enqueue_response(response);
+			m_message_cache->remove_message_from_cache(response->route(), response->uuid());			
 		break;
 
 		case resource_error: {
@@ -165,30 +167,32 @@ handle_t::dispatch_next_available_response(balancer_t& balancer) {
 				resheduled = true;
 
 				std::string message_str = "resheduled message with uuid: " + response->uuid();	
-				message_str += " from " + description() + ", reason: error received, code: ";
-				message_str += response->code() + ", error message: " + response->error_message();
-				log(PLOG_WARNING, message_str);
+				message_str += " from " + description() + ", reason: error received, code: %d";
+				message_str += ", error message: " + response->error_message();
+				log(PLOG_WARNING, message_str, response->code());
 			}
 			else {
+				enqueue_response(response);
+
 				std::string message_str = "error received for message with uuid: " + response->uuid();	
 				message_str += " from " + description() + ", code: %d";
 				message_str += ", error message: " + response->error_message();
 				log(PLOG_ERROR, message_str, response->code());
 
 				m_message_cache->remove_message_from_cache(response->route(), response->uuid());
-				enqueue_response(response);
 			}
 		}
 		break;
 
 		default: {
+			enqueue_response(response);
+
 			std::string message_str = "error received for message with uuid: " + response->uuid();	
 			message_str += " from " + description() + ", code: %d";
 			message_str += ", error message: " + response->error_message();
 			log(PLOG_ERROR, message_str, response->code());
 
 			m_message_cache->remove_message_from_cache(response->route(), response->uuid());
-			enqueue_response(response);
 		}
 		break;
 	}
@@ -361,7 +365,7 @@ handle_t::dispatch_next_available_message(balancer_t& balancer) {
 		m_message_cache->move_new_message_to_sent(endpoint.route);
 
 		std::string log_msg = "sent msg with uuid: %s to %s";
-		log(PLOG_DEBUG, log_msg.c_str(), new_msg->uuid().c_str(), description().c_str());
+		//log(PLOG_DEBUG, log_msg.c_str(), new_msg->uuid().c_str(), description().c_str());
 
 		return true;
 	}

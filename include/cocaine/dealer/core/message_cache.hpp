@@ -61,12 +61,13 @@ public:
 	virtual ~message_cache_t();
 
 	void enqueue(const boost::shared_ptr<message_iface>& message);
-	void enqueue_with_priority(const boost::shared_ptr<message_iface>& message);
 	void append_message_queue(message_queue_ptr_t queue);
 
 	size_t new_messages_count();
 	size_t sent_messages_count();
 
+
+	void enqueue_with_priority(const boost::shared_ptr<message_iface>& message);
 	cached_message_ptr_t get_new_message();
 	
 	bool get_sent_message(const std::string& route,

@@ -204,11 +204,13 @@ dealer_impl_t::send_message(const boost::shared_ptr<message_iface>& msg,
 
 	std::string message_str = "enqued msg (%d bytes) with uuid: %s to %s";
 
+	/*
 	log(PLOG_DEBUG,
 		message_str,
 		msg->size(),
 		uuid.c_str(),
 		msg->path().as_string().c_str());
+	*/
 
 	return uuid;
 }
