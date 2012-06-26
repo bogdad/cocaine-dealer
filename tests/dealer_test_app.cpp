@@ -17,6 +17,7 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/filesystem.hpp>
 
 #include "cocaine/dealer/dealer.hpp"
 #include "cocaine/dealer/utils/progress_timer.hpp"

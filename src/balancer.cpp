@@ -324,12 +324,12 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 	switch (rpc_code) {
 		case SERVER_RPC_MESSAGE_ACK: {
 			sent_msg->set_ack_received(true);
-			//log(PLOG_DEBUG, message_str + "ACK");
+			log(PLOG_DEBUG, message_str + "ACK");
 			return false;
 		}
 
 		case SERVER_RPC_MESSAGE_CHUNK: {
-			//log(PLOG_DEBUG, message_str + "CHUNK");
+			log(PLOG_DEBUG, message_str + "CHUNK");
 
 			response_t.reset(new cached_response_t(uuid,
 												 route,
@@ -362,14 +362,14 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 												 error_code,
 												 error_message));
 			
-			//log(PLOG_ERROR, message_str + "ERROR, error message: %s, error code: %d", error_message.c_str(), error_code);
+			log(PLOG_ERROR, message_str + "ERROR, error message: %s, error code: %d", error_message.c_str(), error_code);
 
 			return true;
 		}
 		break;
 
 		case SERVER_RPC_MESSAGE_CHOKE: {
-			//log(PLOG_DEBUG, message_str + "CHOKE");
+			log(PLOG_DEBUG, message_str + "CHOKE");
 
 			response_t.reset(new cached_response_t(uuid,
 												 route,

@@ -47,8 +47,11 @@ dealer_impl_t::dealer_impl_t(const std::string& config_path) :
 	// create dealer context
 	std::string ctx_error_msg = "could not create dealer context at: " + std::string(BOOST_CURRENT_FUNCTION) + " ";
 
+	char absolute_config_path[512];
+    realpath(config_path.c_str(), absolute_config_path);
+
 	try {
-		boost::shared_ptr<cocaine::dealer::context_t> ctx(new cocaine::dealer::context_t(config_path));
+		boost::shared_ptr<cocaine::dealer::context_t> ctx(new cocaine::dealer::context_t(absolute_config_path));
 		set_context(ctx);
 	}
 	catch (const std::exception& ex) {
@@ -204,13 +207,11 @@ dealer_impl_t::send_message(const boost::shared_ptr<message_iface>& msg,
 
 	std::string message_str = "enqued msg (%d bytes) with uuid: %s to %s";
 
-	/*
 	log(PLOG_DEBUG,
 		message_str,
 		msg->size(),
 		uuid.c_str(),
 		msg->path().as_string().c_str());
-	*/
 
 	return uuid;
 }

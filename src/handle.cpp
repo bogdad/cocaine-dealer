@@ -365,7 +365,7 @@ handle_t::dispatch_next_available_message(balancer_t& balancer) {
 		m_message_cache->move_new_message_to_sent(endpoint.route);
 
 		std::string log_msg = "sent msg with uuid: %s to %s";
-		//log(PLOG_DEBUG, log_msg.c_str(), new_msg->uuid().c_str(), description().c_str());
+		log(PLOG_DEBUG, log_msg.c_str(), new_msg->uuid().c_str(), description().c_str());
 
 		return true;
 	}

@@ -14,7 +14,7 @@
 			"app" : "rimz_app@1",
 			"autodiscovery" : {
 				"type" : "FILE",
-				"source" : "/Users/creator/cocaine-dealer/tests/hosts"
+				"source" : "tests/hosts"
 			}
 		}
 	}
