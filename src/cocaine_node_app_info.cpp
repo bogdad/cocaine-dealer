@@ -30,7 +30,22 @@ namespace dealer {
 
 std::ostream& operator << (std::ostream& out, const cocaine_node_app_info_t& info) {
 	std::string name = "+ [" + info.name + "]";
-	std::string running = info.is_running ? "yes" : "no";
+	std::string status;
+
+	switch (info.status) {
+		case APP_STATUS_RUNNING:
+			status = "running";
+			break;
+		case APP_STATUS_STOPPING:
+			status = "stopping";
+			break;
+		case APP_STATUS_STOPPED:
+			status = "stopped";
+			break;
+		default:
+			status = "unknown";
+			break;
+	}
 
 	std::stringstream slaves;
 	slaves << "busy " << info.slaves_busy << ", total " << info.slaves_total;
@@ -44,7 +59,7 @@ std::ostream& operator << (std::ostream& out, const cocaine_node_app_info_t& inf
 	out << name << std::endl;
 
 	out << std::setw(2) << "" << std::setw(4) << "" << std::setw(9);
-	out << "running: " << std::setw(0) << running << std::endl;
+	out << "status: " << std::setw(0) << status << std::endl;
 
 	out << std::setw(2) << "" << std::setw(4) << "" << std::setw(9);
 	out << "slaves: " << std::setw(0) << slaves.str() << std::endl;

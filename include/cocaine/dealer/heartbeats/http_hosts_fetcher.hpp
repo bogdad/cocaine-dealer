@@ -26,6 +26,8 @@
 
 #include <curl/curl.h>
 
+#include <boost/utility.hpp>
+
 #include "cocaine/dealer/heartbeats/hosts_fetcher_iface.hpp"
 
 namespace cocaine {
@@ -33,10 +35,12 @@ namespace dealer {
 
 class http_hosts_fetcher_t : public hosts_fetcher_iface, private boost::noncopyable  {
 public:
+    http_hosts_fetcher_t();
 	http_hosts_fetcher_t(const service_info_t& service_info);
 	virtual ~http_hosts_fetcher_t();
 
 	bool get_hosts(inetv4_endpoints_t& endpoints, service_info_t& service_info);
+    bool get_hosts(inetv4_endpoints_t& endpoints, const std::string& source);
 
 private:
 	static int curl_writer(char* data, size_t size, size_t nmemb, std::string* buffer_in);

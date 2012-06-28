@@ -190,7 +190,10 @@ heartbeats_collector_t::process_alive_endpoints() {
 			}
 
 			// app stoped or no handles at endpoint's app
-			if (!app.is_running || app.tasks.size() == 0) {
+			if (app.status == APP_STATUS_STOPPED ||
+				app.status == APP_STATUS_UNKNOWN ||
+				app.tasks.size() == 0)
+			{
 				continue;
 			}
 
@@ -267,7 +270,7 @@ heartbeats_collector_t::ping_endpoints() {
 
 bool
 heartbeats_collector_t::get_metainfo_from_endpoint(const inetv4_endpoint_t& endpoint,
-												 std::string& response_t)
+												   std::string& response_t)
 {
 	// create req socket
 	std::auto_ptr<zmq::socket_t> zmq_socket;

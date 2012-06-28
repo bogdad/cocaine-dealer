@@ -23,6 +23,8 @@
 
 #include <vector>
 
+#include <boost/utility.hpp>
+
 #include "cocaine/dealer/heartbeats/hosts_fetcher_iface.hpp"
 
 namespace cocaine {
@@ -30,11 +32,12 @@ namespace dealer {
 
 class file_hosts_fetcher_t : public hosts_fetcher_iface, private boost::noncopyable  {
 public:
-	file_hosts_fetcher_t(const service_info_t& service_info);
+    file_hosts_fetcher_t();
+	explicit file_hosts_fetcher_t(const service_info_t& service_info);
 	virtual ~file_hosts_fetcher_t();
 	
 	bool get_hosts(inetv4_endpoints_t& endpoints, service_info_t& service_info);
-
+    bool get_hosts(inetv4_endpoints_t& endpoints, const std::string& source);
 private:
 	service_info_t m_service_info;
 	time_t         m_file_modification_time;

@@ -32,20 +32,27 @@ namespace dealer {
 struct cocaine_node_app_info_t;
 std::ostream& operator << (std::ostream& out, const cocaine_node_app_info_t& info);
 
+enum app_status {
+	APP_STATUS_UNKNOWN = 1,
+	APP_STATUS_RUNNING,
+	APP_STATUS_STOPPING,
+	APP_STATUS_STOPPED
+};
+
 struct cocaine_node_app_info_t {
 	// <task name, task info>
 	typedef std::map<std::string, cocaine_node_task_info_t> application_tasks;
 
 	cocaine_node_app_info_t() :
 		queue_depth(0),
-		is_running(false),
+		status(APP_STATUS_UNKNOWN),
 		slaves_busy(0),
 		slaves_total(0) {}
 
 	explicit cocaine_node_app_info_t(const std::string& name_) :
 		name(name_),
 		queue_depth(0),
-		is_running(false),
+		status(APP_STATUS_UNKNOWN),
 		slaves_busy(0),
 		slaves_total(0) {}
 
@@ -54,7 +61,7 @@ struct cocaine_node_app_info_t {
 	std::string			name;
 	application_tasks	tasks;
 	unsigned int		queue_depth;
-	bool				is_running;
+	enum app_status		status;
 	unsigned int		slaves_busy;
 	unsigned int		slaves_total;
 

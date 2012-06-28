@@ -31,6 +31,12 @@
 namespace cocaine {
 namespace dealer {
 
+http_hosts_fetcher_t::http_hosts_fetcher_t() :
+	m_curl(NULL)
+{
+	m_curl = curl_easy_init();
+}
+
 http_hosts_fetcher_t::http_hosts_fetcher_t(const service_info_t& service_info) :
 	m_curl(NULL),
 	m_service_info(service_info)
@@ -54,13 +60,20 @@ http_hosts_fetcher_t::curl_writer(char* data, size_t size, size_t nmemb, std::st
 
 bool
 http_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, service_info_t& service_info) {
+	bool hosts_retreval_success = get_hosts(endpoints, m_service_info.hosts_source);
+	service_info = m_service_info;
+	return hosts_retreval_success;
+}
+
+bool
+http_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, const std::string& source) {
 	CURLcode result = CURLE_OK;
 	char error_buffer[CURL_ERROR_SIZE];
 	std::string buffer;
 	
 	if (m_curl) {
 		curl_easy_setopt(m_curl, CURLOPT_ERRORBUFFER, error_buffer);
-		curl_easy_setopt(m_curl, CURLOPT_URL, m_service_info.hosts_source.c_str());
+		curl_easy_setopt(m_curl, CURLOPT_URL, source.c_str());
 		curl_easy_setopt(m_curl, CURLOPT_HEADER, 0);
 		curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 		curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_writer);
@@ -99,7 +112,7 @@ http_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, service_info_t& s
 			size_t where = line.find_last_of(":");
 
 			if (where == std::string::npos) {
-				endpoints.push_back(inetv4_endpoint_t(inetv4_host_t(line)));
+				endpoints.push_back(inetv4_endpoint_t(inetv4_host_t(line), default_control_port));
 			}
 			else {
 				std::string ip = line.substr(0, where);
@@ -111,8 +124,7 @@ http_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, service_info_t& s
 		catch (...) {
 		}
 	}
-	
-	service_info = m_service_info;
+
 	return true;
 }
 

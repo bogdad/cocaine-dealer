@@ -37,6 +37,11 @@
 namespace cocaine {
 namespace dealer {
 
+file_hosts_fetcher_t::file_hosts_fetcher_t() :
+	m_file_modification_time(0)
+{
+}
+
 file_hosts_fetcher_t::file_hosts_fetcher_t(const service_info_t& service_info) :
 	m_service_info(service_info),
 	m_file_modification_time(0)
@@ -48,11 +53,18 @@ file_hosts_fetcher_t::~file_hosts_fetcher_t() {
 
 bool
 file_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, service_info_t& service_info) {
+	bool hosts_retreval_success = get_hosts(endpoints, m_service_info.hosts_source);
+	service_info = m_service_info;
+	return hosts_retreval_success;
+}
+
+bool
+file_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, const std::string& source) {
 	std::string buffer;
 
 	// check file modification time
 	struct stat attrib;
-	stat(m_service_info.hosts_source.c_str(), &attrib);
+	stat(source.c_str(), &attrib);
 
 	if (attrib.st_mtime <= m_file_modification_time) {
 		return false;
@@ -61,10 +73,10 @@ file_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, service_info_t& s
 	// load file
 	std::string code;
 	std::ifstream file;
-	file.open(m_service_info.hosts_source.c_str(), std::ifstream::in);
+	file.open(source.c_str(), std::ifstream::in);
 
 	if (!file.is_open()) {
-		throw internal_error("hosts file: " + m_service_info.hosts_source + " failed to open at: " + std::string(BOOST_CURRENT_FUNCTION));
+		throw internal_error("hosts file: " + source + " failed to open.");
 	}
 
 	size_t max_size = 512;
@@ -97,7 +109,7 @@ file_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, service_info_t& s
 			size_t where = line.find_last_of(":");
 
 			if (where == std::string::npos) {
-				endpoints.push_back(inetv4_endpoint_t(inetv4_host_t(line)));
+				endpoints.push_back(inetv4_endpoint_t(inetv4_host_t(line), default_control_port));
 			}
 			else {
 				std::string ip = line.substr(0, where);
@@ -109,8 +121,7 @@ file_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, service_info_t& s
 		catch (...) {
 		}
 	}
-	
-	service_info = m_service_info;
+
 	return true;
 }
 

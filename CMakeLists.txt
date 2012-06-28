@@ -80,7 +80,18 @@ ADD_EXECUTABLE(dealer_test_app
 TARGET_LINK_LIBRARIES(dealer_test_app
     boost_program_options-mt
     cocaine-dealer
-    boost_filesystem-mt
+    zmq)
+
+ADD_EXECUTABLE(overseer
+    utils/overseer.cpp
+    src/file_hosts_fetcher.cpp
+    src/cocaine_node_info.cpp
+    src/cocaine_node_app_info.cpp
+    src/cocaine_node_task_info.cpp)
+
+TARGET_LINK_LIBRARIES(overseer
+    boost_program_options-mt
+    json
     zmq)
 
 INSTALL(
