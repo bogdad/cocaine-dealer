@@ -265,8 +265,6 @@ configuration_t::parse_services_settings(const Json::Value& config_value) {
     	realpath(si.hosts_source.c_str(), absolute_source_path);
     	si.hosts_source = absolute_source_path;
 
-    	std::cout << si.hosts_source << std::endl;
-
 		std::string autodiscovery_type_str = autodiscovery.get("type", "").asString();
 
 		if (autodiscovery_type_str == "FILE") {
