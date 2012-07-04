@@ -32,7 +32,7 @@ namespace dealer {
 class refresher : private boost::noncopyable {
 
 public:
-    refresher(boost::function<void()> f, boost::uint32_t timeout); // timeout in millisecs
+    refresher(boost::function<void()> f, unsigned long long timeout); // timeout in millisecs
     virtual ~refresher();
 
 private:
@@ -43,7 +43,7 @@ private:
     boost::function<void()> m_func;
     
     // ivars
-    boost::uint32_t m_timeout;
+    unsigned long long m_timeout;
     volatile bool m_stopping;
 
     // threading

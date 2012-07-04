@@ -28,7 +28,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include "cocaine/dealer/utils/error.hpp"
+#include <cocaine/dealer/utils/error.hpp>
 
 namespace cocaine {
 namespace dealer {

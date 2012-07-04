@@ -1,1 +1,0 @@
-#define COCAINE_VERSION 0.8

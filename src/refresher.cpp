@@ -19,13 +19,14 @@
 */
 
 #include <boost/bind.hpp>
+#include <iostream>
 
 #include "cocaine/dealer/utils/refresher.hpp"
 
 namespace cocaine {
 namespace dealer {
 
-refresher::refresher(boost::function<void()> f, boost::uint32_t timeout) :
+refresher::refresher(boost::function<void()> f, unsigned long long timeout) :
 	m_func(f),
 	m_timeout(timeout),
 	m_stopping(false),
@@ -46,10 +47,14 @@ refresher::refreshing_thread() {
 
 	while (!m_stopping) {
 		boost::mutex::scoped_lock lock(m_mutex);
-		
-		unsigned long long millisecs = static_cast<unsigned long long>(m_timeout);
-		boost::system_time t = boost::get_system_time() + boost::posix_time::milliseconds(millisecs);
-		m_cond_var.timed_wait(lock, t);
+
+		boost::system_time t = boost::get_system_time() + boost::posix_time::milliseconds(m_timeout);
+		boost::system_time t2 = boost::get_system_time();
+
+		while (t2 < t) {
+			m_cond_var.timed_wait(lock, t);
+			t2 = boost::get_system_time();
+		}
 
 		if (!m_stopping && m_func) {
 			m_func();

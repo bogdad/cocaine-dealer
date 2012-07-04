@@ -24,8 +24,8 @@
 
 #include "cocaine/dealer/core/cached_message.hpp"
 #include "cocaine/dealer/core/request_metadata.hpp"
+#include "cocaine/dealer/core/persistent_data_container.hpp"
 #include "cocaine/dealer/utils/data_container.hpp"
-#include "cocaine/dealer/utils/persistent_data_container.hpp"
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/heartbeats/heartbeats_collector.hpp"
 #include "cocaine/dealer/heartbeats/http_hosts_fetcher.hpp"

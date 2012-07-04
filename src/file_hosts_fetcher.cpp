@@ -64,7 +64,13 @@ file_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, const std::string
 
 	// check file modification time
 	struct stat attrib;
-	stat(source.c_str(), &attrib);
+	if (0 != stat(source.c_str(), &attrib)) {
+		throw internal_error("bad hosts path: " + source);
+	}
+
+	if (attrib.st_mode & S_IFMT != S_IFREG) {
+		throw internal_error("bad hosts path: " + source + ", not a file.");
+	}
 
 	if (attrib.st_mtime <= m_file_modification_time) {
 		return false;

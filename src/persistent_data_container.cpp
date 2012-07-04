@@ -31,7 +31,7 @@
 #include "json/json.h"
 
 #include "cocaine/dealer/utils/error.hpp"
-#include "cocaine/dealer/utils/persistent_data_container.hpp"
+#include "cocaine/dealer/core/persistent_data_container.hpp"
 
 namespace cocaine {
 namespace dealer {

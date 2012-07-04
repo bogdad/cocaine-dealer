@@ -28,6 +28,7 @@
 #include "cocaine/dealer/dealer.hpp"
 #include "cocaine/dealer/utils/progress_timer.hpp"
 #include <cocaine/dealer/utils/error.hpp>
+#include <cocaine/dealer/utils/refresher.hpp>
 
 using namespace cocaine::dealer;
 using namespace boost::program_options;
@@ -55,7 +56,7 @@ void worker(dealer_t* d,
 
 			data_container data;
 			while (resp->get(&data)) {
-				//std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+				std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 			}
 		}
 		catch (const dealer_error& err) {
@@ -127,6 +128,10 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 	std::cout << "approx performance: " << sent_messages / timer.elapsed().as_double() << " rps." << std::endl;
 	
 	std::cout << "----------------------------------- shutting dealers down -------------------------------\n";
+}
+
+void echo() {
+	std::cout << "hello\n";
 }
 
 int

@@ -3,10 +3,13 @@ PROJECT(Dealer)
 
 SET(DEALER_VERSION 0.8)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+SET(CMAKE_INSTALL_PREFIX /usr)
+
+MESSAGE("-- prefix='${CMAKE_INSTALL_PREFIX}'")
 
 CONFIGURE_FILE(
     "${PROJECT_SOURCE_DIR}/config.hpp.in"
-    "${PROJECT_SOURCE_DIR}/include/cocaine/config.hpp")
+    "${PROJECT_SOURCE_DIR}/include/cocaine/dealer/config.hpp")
 
 FIND_PACKAGE(Boost 1.34.1 REQUIRED
     COMPONENTS
@@ -101,16 +104,23 @@ INSTALL(
     LIBRARY DESTINATION lib COMPONENT runtime
     ARCHIVE DESTINATION lib COMPONENT developement)
 
+FILE(GLOB DEALER_DEV_HEADERS
+    "include/cocaine/dealer/*.hpp")
+
 INSTALL(
-    TARGETS
-        cocaine-dealer
-    RUNTIME DESTINATION bin COMPONENT runtime
-    LIBRARY DESTINATION lib COMPONENT runtime
-    ARCHIVE DESTINATION lib COMPONENT developement)
+    FILES
+        ${DEALER_DEV_HEADERS}
+    DESTINATION include/cocaine/dealer
+    COMPONENT development)
 
 INSTALL(
     DIRECTORY
-        include/
+        include/cocaine/dealer/utils
+    DESTINATION include/cocaine/dealer
+    COMPONENT development)
+
+INSTALL(
+    DIRECTORY
         foreign/jsoncpp-0.6.0-rc2/include/
     DESTINATION include
     COMPONENT development)

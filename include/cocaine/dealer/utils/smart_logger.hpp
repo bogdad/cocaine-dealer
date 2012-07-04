@@ -32,7 +32,7 @@
 
 #include <boost/current_function.hpp>
 
-#include "cocaine/dealer/utils/error.hpp"
+#include <cocaine/dealer/utils/error.hpp>
 
 namespace cocaine {
 namespace dealer {
