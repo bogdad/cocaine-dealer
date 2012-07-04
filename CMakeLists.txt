@@ -126,3 +126,11 @@ INSTALL(
         foreign/jsoncpp-0.6.0-rc2/include/
     DESTINATION include
     COMPONENT development)
+
+INSTALL(
+    DIRECTORY
+        bindings/perl/blib
+    DESTINATION /tmp/perl/modules/cocaine_dealer
+    COMPONENT development)
+
+INSTALL(SCRIPT bindings/install_perl_module.cmake)

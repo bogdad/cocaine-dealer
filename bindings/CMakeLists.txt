@@ -13,11 +13,3 @@ ADD_CUSTOM_TARGET(perl_binding ALL
     COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_BINARY_DIR}/perl perl Makefile.PL
     COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_BINARY_DIR}/perl make
     COMMENT "Built perl binding.")
-
-INSTALL(
-    DIRECTORY
-        perl/blib
-    DESTINATION /tmp/perl/modules/cocaine_dealer
-    COMPONENT development)
-
-INSTALL(SCRIPT install_perl_module.cmake)
