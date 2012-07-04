@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use lib qw(../lib ../blib/lib ../blib/arch/auto/cocaine_dealer);
+use lib qw( ../lib ../blib/arch/auto/cocaine_dealer );
 
 require "cocaine_dealer_wrapper.pm";
 
@@ -11,7 +11,7 @@ my $dealer = new CocaineDealer("config.json");
 my $path = { "app" => "rimz_app", "event" => "rimz_func" };
 
 # send message
-my $response = $dealer->send_message("chunk: ^ huita! : __ \n", $path);
+my $response = $dealer->send_message("chunk: ", $path);
 
 # create data container to hold chunk data
 my $data_container = new cocaine_dealer::data_container;

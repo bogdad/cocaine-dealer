@@ -1,0 +1,23 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+PROJECT(Dealer)
+
+SET(DEALER_VERSION 0.8)
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+SET(CMAKE_INSTALL_PREFIX /usr)
+
+MESSAGE("-- prefix='${CMAKE_INSTALL_PREFIX}'")
+
+ADD_CUSTOM_TARGET(perl_binding ALL
+    COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_BINARY_DIR}/perl perl Makefile.PL
+    COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_BINARY_DIR}/perl make clean
+    COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_BINARY_DIR}/perl perl Makefile.PL
+    COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_BINARY_DIR}/perl make
+    COMMENT "Built perl binding.")
+
+INSTALL(
+    DIRECTORY
+        perl/blib
+    DESTINATION /tmp/perl/modules/cocaine_dealer
+    COMPONENT development)
+
+INSTALL(SCRIPT install_perl_module.cmake)

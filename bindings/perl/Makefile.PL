@@ -6,6 +6,8 @@ $CC = 'g++';
 $YPCFLAGS = ``;
 $YPLIBS = ``;
 
+my $FULLEXT = "Cocaine/Dealer";
+
 WriteMakefile(
 	NAME            => 'cocaine_dealer',
 	VERSION_FROM    => 'lib/cocaine_dealer.pm',
