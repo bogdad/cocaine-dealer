@@ -97,8 +97,6 @@ TARGET_LINK_LIBRARIES(overseer
     json
     zmq)
 
-ADD_SUBDIRECTORY(bindings)
-
 INSTALL(
     TARGETS
         cocaine-dealer
