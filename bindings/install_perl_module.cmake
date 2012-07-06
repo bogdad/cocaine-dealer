@@ -1,1 +1,1 @@
-EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E chdir /tmp/perl/modules/cocaine_dealer perl -MExtUtils::Install -e install_default Cocaine/Dealer)
+EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E chdir ./perl make install)

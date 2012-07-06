@@ -3,7 +3,7 @@ PROJECT(Dealer)
 
 SET(DEALER_VERSION 0.8)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-SET(CMAKE_INSTALL_PREFIX /usr)
+#SET(CMAKE_INSTALL_PREFIX /usr)
 
 MESSAGE("-- prefix='${CMAKE_INSTALL_PREFIX}'")
 
@@ -132,5 +132,3 @@ INSTALL(
         bindings/perl/blib
     DESTINATION /tmp/perl/modules/cocaine_dealer
     COMPONENT development)
-
-INSTALL(SCRIPT bindings/install_perl_module.cmake)

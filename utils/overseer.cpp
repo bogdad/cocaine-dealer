@@ -55,14 +55,18 @@ void fetch_cloud_application_info(const std::string& hosts_file,
 								  const std::string& application_name)
 {
 	// prepare hosts path
-	char absolute_hosts_file[512];
-    realpath(hosts_file.c_str(), absolute_hosts_file);
+	char* absolute_hosts_file = realpath(hosts_file.c_str(), NULL);
+	std::string hosts_file_tmp = hosts_file;
+
+	if (NULL != absolute_hosts_file) {
+		hosts_file_tmp = absolute_hosts_file;
+	}
 
 	file_hosts_fetcher_t hosts_fetcher;
 	file_hosts_fetcher_t::inetv4_endpoints_t endpoints;
 
 	// get endpoints list
-	hosts_fetcher.get_hosts(endpoints, absolute_hosts_file);
+	hosts_fetcher.get_hosts(endpoints, hosts_file_tmp.c_str());
 
 	typedef std::map<inetv4_endpoint_t, app_information> endpoints_info_map;
 

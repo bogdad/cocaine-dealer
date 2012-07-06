@@ -47,11 +47,16 @@ dealer_impl_t::dealer_impl_t(const std::string& config_path) :
 	// create dealer context
 	std::string ctx_error_msg = "could not create dealer context at: " + std::string(BOOST_CURRENT_FUNCTION) + " ";
 
-	char absolute_config_path[512];
-    realpath(config_path.c_str(), absolute_config_path);
+	char* absolute_config_path;
+	std::string config_path_tmp = config_path;
+
+	absolute_config_path = realpath(config_path_tmp.c_str(), NULL);
+    if (NULL != absolute_config_path) {
+    	config_path_tmp = absolute_config_path;
+    }
 
 	try {
-		boost::shared_ptr<cocaine::dealer::context_t> ctx(new cocaine::dealer::context_t(absolute_config_path));
+		boost::shared_ptr<cocaine::dealer::context_t> ctx(new cocaine::dealer::context_t(config_path_tmp.c_str()));
 		set_context(ctx);
 	}
 	catch (const std::exception& ex) {
