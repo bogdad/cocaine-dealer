@@ -24,11 +24,12 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/regex.hpp>
 
 #include "cocaine/dealer/dealer.hpp"
 #include "cocaine/dealer/utils/progress_timer.hpp"
-#include <cocaine/dealer/utils/error.hpp>
-#include <cocaine/dealer/utils/refresher.hpp>
+#include "cocaine/dealer/utils/error.hpp"
+#include "cocaine/dealer/utils/refresher.hpp"
 
 using namespace cocaine::dealer;
 using namespace boost::program_options;
@@ -42,7 +43,7 @@ void worker(dealer_t* d,
 	message_path_t path("rimz_app", "rimz_func");
 	//message_path_t path("testing", "method3");
 	message_policy_t policy;
-	policy.deadline = 0.0;
+	policy.deadline = 1.0;
 	policy.max_retries = -1;
 	std::string payload = "response chunk: ";
 
@@ -128,10 +129,8 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 	std::cout << "approx performance: " << sent_messages / timer.elapsed().as_double() << " rps." << std::endl;
 	
 	std::cout << "----------------------------------- shutting dealers down -------------------------------\n";
-}
 
-void echo() {
-	std::cout << "hello\n";
+	sleep(10);
 }
 
 int

@@ -272,7 +272,10 @@ handle_t::process_deadlined_messages() {
 													 expired_messages.at(i)->path(),
 													 deadline_error,
 													 "message expired in service's handle"));
-			log(PLOG_ERROR, "deadline policy exceeded, for message " + expired_messages.at(i)->uuid());
+
+			std::string timestamp_str = time_value::get_current_time().as_string();
+			timestamp_str = " (" + timestamp_str + ")";
+			log(PLOG_ERROR, "deadline policy exceeded, for message " + expired_messages.at(i)->uuid() + timestamp_str);
 			enqueue_response(new_response);
 		}
 	}
@@ -364,8 +367,15 @@ handle_t::dispatch_next_available_message(balancer_t& balancer) {
 		new_msg->mark_as_sent(true);
 		m_message_cache->move_new_message_to_sent(endpoint.route);
 
-		std::string log_msg = "sent msg with uuid: %s to %s";
-		log(PLOG_DEBUG, log_msg.c_str(), new_msg->uuid().c_str(), description().c_str());
+		std::string log_msg = "sent msg with uuid: %s to endpoint: %s with route: %s (%s)";
+		std::string sent_timestamp_str = new_msg->sent_timestamp().as_string();
+
+		log(PLOG_DEBUG,
+			log_msg.c_str(),
+			new_msg->uuid().c_str(),
+			endpoint.endpoint.c_str(),
+			description().c_str(),
+			sent_timestamp_str.c_str());
 
 		return true;
 	}

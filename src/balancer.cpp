@@ -318,18 +318,22 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 		return false;
 	}
 
-	std::string message_str = "balancer " + m_socket_identity + " received response_t for msg with uuid: ";
+	std::string timestamp_str = time_value::get_current_time().as_string();
+	timestamp_str = " (" + timestamp_str + ")";
+
+	std::string message_str = "response from: ";
+	message_str += route + " for msg with uuid: ";
 	message_str += sent_msg->uuid() + ", type: ";
 
 	switch (rpc_code) {
 		case SERVER_RPC_MESSAGE_ACK: {
 			sent_msg->set_ack_received(true);
-			log(PLOG_DEBUG, message_str + "ACK");
+			log(PLOG_DEBUG, message_str + "ACK" + timestamp_str);
 			return false;
 		}
 
 		case SERVER_RPC_MESSAGE_CHUNK: {
-			log(PLOG_DEBUG, message_str + "CHUNK");
+			log(PLOG_DEBUG, message_str + "CHUNK" + timestamp_str);
 
 			response_t.reset(new cached_response_t(uuid,
 												 route,
@@ -362,14 +366,14 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 												 error_code,
 												 error_message));
 			
-			log(PLOG_ERROR, message_str + "ERROR, error message: %s, error code: %d", error_message.c_str(), error_code);
+			log(PLOG_ERROR, message_str + "ERROR, error message: %s, error code: %d" + timestamp_str, error_message.c_str(), error_code);
 
 			return true;
 		}
 		break;
 
 		case SERVER_RPC_MESSAGE_CHOKE: {
-			log(PLOG_DEBUG, message_str + "CHOKE");
+			log(PLOG_DEBUG, message_str + "CHOKE" + timestamp_str);
 
 			response_t.reset(new cached_response_t(uuid,
 												 route,

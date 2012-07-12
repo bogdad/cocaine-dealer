@@ -23,7 +23,6 @@
 #include <boost/current_function.hpp>
 
 #include "cocaine/dealer/dealer.hpp"
-#include "cocaine/dealer/response.hpp"
 #include "cocaine/dealer/core/dealer_impl.hpp"
 
 #include "cocaine/dealer/utils/error.hpp"
@@ -45,13 +44,7 @@ dealer_t::send_message(const void* data,
 					 const message_path_t& path,
 					 const message_policy_t& policy)
 {
-	boost::mutex::scoped_lock lock(m_mutex);
-
-	boost::shared_ptr<message_iface> msg = m_impl->create_message(data, size, path, policy);
-	boost::shared_ptr<response_t> resp(new response_t(m_impl, msg->uuid(), path));
-	m_impl->send_message(msg, resp);
-
-	return resp;
+	return m_impl->send_message(data, size, path, policy);
 }
 
 } // namespace dealer

@@ -96,6 +96,7 @@ public:
 	// autodetection
 	std::string hosts_source;
 	enum e_autodiscovery_type discovery_type;
+	short default_discovery_port;
 };
 
 } // namespace dealer

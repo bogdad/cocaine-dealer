@@ -41,13 +41,22 @@
 namespace cocaine {
 namespace dealer {
 
-class dealer_impl_t : private boost::noncopyable, public dealer_object_t {
+class dealer_impl_t :
+	private boost::noncopyable,
+	public boost::enable_shared_from_this<dealer_impl_t>,
+	public dealer_object_t
+{
 public:
 	explicit dealer_impl_t(const std::string& config_path);
 	virtual ~dealer_impl_t();
 
 	std::string send_message(const boost::shared_ptr<message_iface>& msg,
 							 const boost::shared_ptr<response_t>& resp);
+
+	boost::shared_ptr<response_t> send_message(const void* data,
+											   size_t size,
+											   const message_path_t& path,
+											   const message_policy_t& policy);
 
 	void unset_response_callback(const std::string& message_uuid,
 								 const message_path_t& path);
@@ -56,6 +65,8 @@ public:
 													size_t size,
 													const message_path_t& path,
 													const message_policy_t& policy);
+
+	boost::shared_ptr<dealer_impl_t> shared_ptr();
 
 private:
 	typedef std::map<std::string, boost::shared_ptr<service_t> > services_map_t;

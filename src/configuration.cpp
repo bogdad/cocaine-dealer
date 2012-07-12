@@ -333,9 +333,10 @@ configuration_t::load(const std::string& path) {
 	try {
 		parse_basic_settings(root);
 		parse_logger_settings(root);
-		parse_messages_cache_settings(root);
-		parse_persistant_storage_settings(root);
 		parse_services_settings(root);
+
+		//parse_messages_cache_settings(root);
+		//parse_persistant_storage_settings(root);
 		//parse_statistics_settings(config_value);
 	}
 	catch (const std::exception& ex) {

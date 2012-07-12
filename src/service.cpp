@@ -231,6 +231,16 @@ service_t::enque_to_handle(const cached_message_prt_t& message) {
 	assert(handle);
 	handle->enqueue_message(message);
 
+	const static std::string message_str = "enqued msg (%d bytes) with uuid: %s to existing %s (%s)";
+	std::string enqued_timestamp_str = message->enqued_timestamp().as_string();
+
+	log(PLOG_DEBUG,
+		message_str,
+		message->size(),
+		message->uuid().c_str(),
+		message->path().as_string().c_str(),
+		enqued_timestamp_str.c_str());
+
 	return true;
 }
 
@@ -252,6 +262,16 @@ service_t::enque_to_unhandled(const cached_message_prt_t& message) {
 		assert(queue);
 		queue->push_back(message);
 	}
+
+	const static std::string message_str = "enqued msg (%d bytes) with uuid: %s to unhandled %s (%s)";
+	std::string enqued_timestamp_str = message->enqued_timestamp().as_string();
+
+	log(PLOG_DEBUG,
+		message_str,
+		message->size(),
+		message->uuid().c_str(),
+		message->path().as_string().c_str(),
+		enqued_timestamp_str.c_str());
 }
 
 boost::shared_ptr<std::deque<boost::shared_ptr<message_iface> > >
@@ -561,7 +581,10 @@ service_t::check_for_deadlined_messages() {
 												 deadline_error,
 												 "message expired"));
 
-			log(PLOG_ERROR, "deadline policy exceeded, for message " + (*expired_qit)->uuid());
+			std::string timestamp_str = time_value::get_current_time().as_string();
+			timestamp_str = " (" + timestamp_str + ")";
+
+			log(PLOG_ERROR, "deadline policy exceeded, for message " + (*expired_qit)->uuid() + timestamp_str);
 			enqueue_responce(response_t);
 		}
 	}

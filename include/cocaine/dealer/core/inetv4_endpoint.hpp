@@ -71,7 +71,9 @@ public:
 	}
 
 	std::string as_string() const {
-		return host.as_string() + ":" + boost::lexical_cast<std::string>(port);
+		std::string ip_port = nutils::ipv4_to_str(host.ip) + ":";
+		ip_port += boost::lexical_cast<std::string>(port);
+		return ip_port + " (" + host.hostname + ")";
 	}
 
 	inetv4_host_t	host;

@@ -31,6 +31,7 @@
 #include "cocaine/dealer/heartbeats/http_hosts_fetcher.hpp"
 #include "cocaine/dealer/heartbeats/file_hosts_fetcher.hpp"
 #include "cocaine/dealer/storage/eblob_storage.hpp"
+#include "cocaine/dealer/response.hpp"
 
 #include "cocaine/dealer/core/dealer_impl.hpp"
 
@@ -92,6 +93,57 @@ dealer_impl_t::~dealer_impl_t() {
 	log(PLOG_INFO, "dealer destroyed.");
 }
 
+boost::shared_ptr<dealer_impl_t>
+dealer_impl_t::shared_ptr() {
+	return shared_from_this();
+}
+
+boost::shared_ptr<response_t>
+dealer_impl_t::send_message(const void* data,
+							size_t size,
+							const message_path_t& path,
+							const message_policy_t& policy)
+{
+	BOOST_VERIFY(!m_is_dead);
+	
+	const static std::string error_str = "can't sent message. no service with name %s found.";
+
+	boost::mutex::scoped_lock lock(m_mutex);
+	const std::string& service_alias = path.service_alias;
+
+	// find service to send message to
+	services_map_t::iterator it = m_services.find(service_alias);
+
+	if (it == m_services.end()) {
+		throw dealer_error(location_error,
+						   error_str,
+						   service_alias.c_str());
+	}
+
+	boost::shared_ptr<service_t> service_ptr = it->second;
+	assert(service_ptr);
+
+	if (service_ptr->is_dead()) {
+		throw dealer_error(location_error,
+						   error_str,
+						   service_alias.c_str());
+	}
+
+	// create message object
+	boost::shared_ptr<message_iface> msg = create_message(data, size, path, policy);
+
+	// create response object
+	boost::shared_ptr<response_t> resp(new response_t(shared_ptr(),
+													  msg->uuid(),
+													  path));
+
+	// send message
+	service_ptr->register_responder_callback(msg->uuid(), resp);
+	service_ptr->send_message(msg);
+
+	return resp;
+}
+
 void
 dealer_impl_t::connect() {
 	log(PLOG_DEBUG, "creating heartbeats collector");
@@ -142,7 +194,6 @@ dealer_impl_t::create_message(const void* data,
 							const message_path_t& path,
 							const message_policy_t& policy)
 {
-	boost::mutex::scoped_lock lock(m_mutex);
 	boost::shared_ptr<message_iface> msg;
 
 	if (config()->message_cache_type() == RAM_ONLY) {

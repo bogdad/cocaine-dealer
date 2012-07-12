@@ -64,6 +64,7 @@ ADD_LIBRARY(cocaine-dealer SHARED
 
 TARGET_LINK_LIBRARIES(cocaine-dealer
     boost_thread-mt
+    boost_regex-mt
     crypto
     curl
     json
