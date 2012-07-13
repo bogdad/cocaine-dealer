@@ -57,7 +57,7 @@ void worker(dealer_t* d,
 
 			data_container data;
 			while (resp->get(&data)) {
-				std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+				//std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 			}
 		}
 		catch (const dealer_error& err) {
@@ -129,8 +129,6 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 	std::cout << "approx performance: " << sent_messages / timer.elapsed().as_double() << " rps." << std::endl;
 	
 	std::cout << "----------------------------------- shutting dealers down -------------------------------\n";
-
-	sleep(10);
 }
 
 int

@@ -53,7 +53,7 @@ service_t::~service_t() {
 		m_info.app.c_str(),
 		it->second->info().name.c_str());
 
-		it->second->disconnect();
+		it->second.reset();
 	}
 
 	m_is_running = false;
@@ -220,7 +220,7 @@ service_t::enqueue_responce(cached_response_prt_t response_t) {
 
 bool
 service_t::enque_to_handle(const cached_message_prt_t& message) {
-	boost::mutex::scoped_lock lock(m_handles_mutex);
+	//boost::mutex::scoped_lock lock(m_handles_mutex);
 
 	handles_map_t::iterator it = m_handles.find(message->path().handle_name);
 	if (it == m_handles.end()) {
@@ -293,6 +293,8 @@ service_t::get_and_remove_unhandled_queue(const std::string& handle_name) {
 
 void
 service_t::send_message(cached_message_prt_t message) {
+	boost::mutex::scoped_lock lock(m_handles_mutex);
+
 	bool enqued = enque_to_handle(message);
 
 	if (!enqued) {
@@ -485,10 +487,11 @@ void
 service_t::create_handle(const handle_info_t& handle_info,
 						 const handles_endpoints_t& handles_endpoints)
 {
+	boost::mutex::scoped_lock lock(m_handles_mutex);
 	const std::string& handle_name = handle_info.name;
 
 	log(PLOG_INFO,
-		"CREATE HANDLE [%s.%s.%s]",
+		"CREATE HANDLE [%s].[%s].[%s]",
 		m_info.name.c_str(),
 		m_info.app.c_str(),
 		handle_name.c_str());
@@ -519,8 +522,7 @@ service_t::create_handle(const handle_info_t& handle_info,
 			handle_info.as_string().c_str());
 	}
 
-	// append new handle
-	boost::mutex::scoped_lock lock(m_handles_mutex);	
+	// append new handle	
 	m_handles[handle_name] = handle;
 }
 
@@ -581,10 +583,19 @@ service_t::check_for_deadlined_messages() {
 												 deadline_error,
 												 "message expired"));
 
-			std::string timestamp_str = time_value::get_current_time().as_string();
-			timestamp_str = " (" + timestamp_str + ")";
+			std::string enqued_timestamp_str = (*expired_qit)->enqued_timestamp().as_string();
+			std::string sent_timestamp_str = (*expired_qit)->sent_timestamp().as_string();
+			std::string curr_timestamp_str = time_value::get_current_time().as_string();
 
-			log(PLOG_ERROR, "deadline policy exceeded, for message " + (*expired_qit)->uuid() + timestamp_str);
+			std::string log_str = "deadline policy exceeded, for unhandled message %s, (enqued: %s, sent: %s, curr: %s)";
+
+			log(PLOG_ERROR,
+				log_str,
+				(*expired_qit)->uuid().c_str(),
+				enqued_timestamp_str.c_str(),
+				sent_timestamp_str.c_str(),
+				curr_timestamp_str.c_str());
+
 			enqueue_responce(response_t);
 		}
 	}

@@ -31,7 +31,6 @@
 
 #include "cocaine/dealer/core/message_cache.hpp"
 #include "cocaine/dealer/utils/error.hpp"
-#include "cocaine/dealer/utils/progress_timer.hpp"
 
 namespace cocaine {
 namespace dealer {
@@ -320,7 +319,6 @@ message_cache_t::make_all_messages_new_for_route(const std::string& route) {
 	}
 	
 	for (; mit != msg_map.end(); ++mit) {
-
 		if (!mit->second) {
 			throw internal_error("empty cached message object at " + std::string(BOOST_CURRENT_FUNCTION));
 		}

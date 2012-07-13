@@ -48,10 +48,12 @@ refresher::refreshing_thread() {
 	while (!m_stopping) {
 		boost::mutex::scoped_lock lock(m_mutex);
 
-		boost::system_time t = boost::get_system_time() + boost::posix_time::milliseconds(m_timeout);
+		boost::system_time t = boost::get_system_time();
+		t += boost::posix_time::milliseconds(m_timeout);
+
 		boost::system_time t2 = boost::get_system_time();
 
-		while (t2 < t) {
+		while (t2 < t && !m_stopping) {
 			m_cond_var.timed_wait(lock, t);
 			t2 = boost::get_system_time();
 		}

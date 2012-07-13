@@ -70,8 +70,6 @@ balancer_t::connect(const std::vector<cocaine_endpoint_t>& endpoints) {
 			connection_str = endpoints[i].endpoint;
 			m_socket->connect(connection_str.c_str());
 		}
-
-		boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 	}
 	catch (const std::exception& ex) {
 		std::string error_msg = "balancer with identity " + m_socket_identity + " could not connect to ";
@@ -366,7 +364,7 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 												 error_code,
 												 error_message));
 			
-			log(PLOG_ERROR, message_str + "ERROR, error message: %s, error code: %d" + timestamp_str, error_message.c_str(), error_code);
+			//log(PLOG_ERROR, message_str + "ERROR, error message: %s, error code: %d" + timestamp_str, error_message.c_str(), error_code);
 
 			return true;
 		}

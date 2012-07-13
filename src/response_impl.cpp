@@ -68,19 +68,21 @@ response_impl_t::get(data_container* data, double timeout) {
 
 	// block until received callback
 	if (!m_message_finished) {
-		while (!m_response_finished && !m_message_finished) {
-			if (timeout < 0.0) {
+		if (timeout < 0.0) {
+			while (!m_response_finished) { // handle spurrious wakes
 				m_cond_var.wait(lock);
 			}
-			else {
-				unsigned long long millisecs = static_cast<unsigned long long>(timeout * 1000000);
-				boost::system_time t = boost::get_system_time() + boost::posix_time::milliseconds(millisecs);
+		}
+		else {
+			boost::system_time t = boost::get_system_time();
+			t += boost::posix_time::milliseconds(timeout);
+
+			while (!m_response_finished) { // handle spurrious wakes
 				m_cond_var.timed_wait(lock, t);
-				break;
 			}
 		}
 
-		if (!m_message_finished && m_response_finished) {
+		if (m_response_finished) {
 			m_response_finished = false;
 		}
 	}

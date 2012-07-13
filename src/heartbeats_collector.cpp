@@ -86,6 +86,8 @@ heartbeats_collector_t::stop() {
 	for (size_t i = 0; i < m_hosts_fetchers.size(); ++i) {
 		m_hosts_fetchers[i].reset();
 	}
+
+	log(PLOG_DEBUG, "heartbeats - collector killed.");
 }
 
 void
@@ -279,7 +281,7 @@ heartbeats_collector_t::get_metainfo_from_endpoint(const inetv4_endpoint_t& endp
 	std::string connection_str = "tcp://" + host_ip_str + ":";
 	connection_str += boost::lexical_cast<std::string>(endpoint.port);
 
-	int timeout = -1;
+	int timeout = 0;
 	zmq_socket->setsockopt(ZMQ_LINGER, &timeout, sizeof(timeout));
 
 	//m_uuid.generate();

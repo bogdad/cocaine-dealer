@@ -75,7 +75,6 @@ public:
 
 	// networking
 	void connect();
-	void disconnect();
 	void update_endpoints(const std::vector<cocaine_endpoint_t>& endpoints);
 
 	// responses consumer
@@ -92,7 +91,7 @@ public:
 
 	boost::shared_ptr<message_cache_t> messages_cache() const;
 	void kill();
-	
+
 private:
 	void dispatch_messages();
 

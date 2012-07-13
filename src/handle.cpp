@@ -18,11 +18,14 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>. 
 */
 
+#include <algorithm>
+
 #include <boost/lexical_cast.hpp>
 
 #include "cocaine/dealer/core/handle.hpp"
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/utils/uuid.hpp"
+#include "cocaine/dealer/utils/progress_timer.hpp"
 
 namespace cocaine {
 namespace dealer {
@@ -61,6 +64,22 @@ handle_t::handle_t(const handle_info_t& info,
 
 handle_t::~handle_t() {
 	kill();
+}
+
+void
+handle_t::kill() {
+	if (!m_is_running) {
+		return;
+	}
+
+	m_is_running = false;
+
+	m_zmq_control_socket->close();
+	m_zmq_control_socket.reset(NULL);
+
+	m_thread.join();
+
+	log(PLOG_DEBUG, "KILLED HANDLE " + description());
 }
 
 void
@@ -198,6 +217,20 @@ handle_t::dispatch_next_available_response(balancer_t& balancer) {
 	}
 }
 
+namespace {
+	struct resheduler {
+		resheduler(const boost::shared_ptr<message_cache_t>& cache) : m_cache(cache) {
+		}
+
+		template <class T> void operator() (const T& obj) {
+			m_cache->make_all_messages_new_for_route(obj.route);
+		}
+
+	private:
+		boost::shared_ptr<message_cache_t> m_cache;
+	};
+}
+
 void
 handle_t::dispatch_control_messages(int type, balancer_t& balancer) {
 	if (!m_is_running) {
@@ -218,7 +251,8 @@ handle_t::dispatch_control_messages(int type, balancer_t& balancer) {
 				balancer.update_endpoints(m_endpoints, missing_endpoints);
 
 				if (!missing_endpoints.empty()) {
-					m_message_cache->make_all_messages_new();
+					std::for_each(missing_endpoints.begin(), missing_endpoints.end(), resheduler(m_message_cache));
+					//m_message_cache->make_all_messages_new();
 				}
 			}
 			break;
@@ -273,9 +307,19 @@ handle_t::process_deadlined_messages() {
 													 deadline_error,
 													 "message expired in service's handle"));
 
-			std::string timestamp_str = time_value::get_current_time().as_string();
-			timestamp_str = " (" + timestamp_str + ")";
-			log(PLOG_ERROR, "deadline policy exceeded, for message " + expired_messages.at(i)->uuid() + timestamp_str);
+			std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
+			std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
+			std::string curr_timestamp_str = time_value::get_current_time().as_string();
+
+			std::string log_str = "deadline policy exceeded, for message %s, (enqued: %s, sent: %s, curr: %s)";
+
+			log(PLOG_ERROR,
+				log_str,
+				expired_messages.at(i)->uuid().c_str(),
+				enqued_timestamp_str.c_str(),
+				sent_timestamp_str.c_str(),
+				curr_timestamp_str.c_str());
+
 			enqueue_response(new_response);
 		}
 	}
@@ -391,22 +435,6 @@ handle_t::info() const {
 	return m_info;
 }
 
-void
-handle_t::kill() {
-	if (!m_is_running) {
-		return;
-	}
-
-	m_is_running = false;
-
-	m_zmq_control_socket->close();
-	m_zmq_control_socket.reset(NULL);
-
-	m_thread.join();
-
-	log(PLOG_DEBUG, "KILLED HANDLE " + description());
-}
-
 std::string
 handle_t::description() {
 	return m_info.as_string();
@@ -446,17 +474,6 @@ handle_t::update_endpoints(const std::vector<cocaine_endpoint_t>& endpoints) {
 	zmq::message_t message(sizeof(int));
 	memcpy((void *)message.data(), &control_message, sizeof(int));
 	m_zmq_control_socket->send(message);
-}
-
-void
-handle_t::disconnect() {
-	boost::mutex::scoped_lock lock(m_mutex);
-
-	if (!m_is_running) {
-		return;
-	}
-
-	m_is_running = false;
 }
 
 void
