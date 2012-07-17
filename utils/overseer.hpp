@@ -58,19 +58,18 @@ public:
 								  bool active_only);
 
 private:
-	bool fetch_apps_info(const inetv4_endpoints_t& endpoints,
+	void fetch_apps_info(const inetv4_endpoints_t& endpoints,
 						 int timeout);
 
 	void connect(const inetv4_endpoints_t& endpoints);
 	void send_requests(const inetv4_endpoints_t& endpoints);
-	void receive_responces(const inetv4_endpoints_t& endpoints,
+	bool receive_responces(const inetv4_endpoints_t& endpoints,
 						   int timeout);
 	void parce_responces(const std::string& application_name);
 
 	endpoints_info_map m_app_stats;
 
 	std::auto_ptr<zmq::context_t> m_zmq_context;
-	std::auto_ptr<zmq::message_t> m_zmq_message;
 	endpoints_socket_map m_zmq_sockets;
 	endpoints_responce_map m_responces;
 };

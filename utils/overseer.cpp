@@ -22,17 +22,6 @@
 
 overseer::overseer() {
 	m_zmq_context.reset(new zmq::context_t(1));
-	
-	// create metadata request message
-	Json::Value	msg(Json::objectValue);
-	msg["version"]	= 2;
-	msg["action"]	= "info";
-
-	Json::FastWriter	writer;
-	std::string			info_request = writer.write(msg);
-
-	m_zmq_message.reset(new zmq::message_t(info_request.length()));
-	memcpy((void *)m_zmq_message->data(), info_request.c_str(), info_request.length());
 }
 
 overseer::~overseer() {
@@ -68,10 +57,21 @@ overseer::connect(const inetv4_endpoints_t& endpoints) {
 			m_app_stats[endpoints[i]] = app_info;
 		}
 	}
+
+	//sleep(1);
 }
 
 void
 overseer::send_requests(const inetv4_endpoints_t& endpoints) {
+	// prepare request str
+	Json::Value	msg(Json::objectValue);
+	msg["version"]	= 2;
+	msg["action"]	= "info";
+
+	Json::FastWriter	writer;
+	std::string			info_request = writer.write(msg);
+
+	// send requests
 	for (size_t i = 0; i < endpoints.size(); ++i) {
 		// check whether endpoint is already processed
 		endpoints_info_map::const_iterator it;
@@ -94,7 +94,11 @@ overseer::send_requests(const inetv4_endpoints_t& endpoints) {
 		try {
 			zmq_socket_ptr_t sock = sit->second;
 
-			if (true != sock->send(*m_zmq_message)) {
+			// create metadata request message
+			zmq::message_t msg(info_request.length());
+			memcpy((void *)msg.data(), info_request.c_str(), info_request.length());
+
+			if (true != sock->send(msg)) {
 				app_info.status = app_info_status::HOST_UNREACHABLE;
 				m_app_stats[endpoints[i]] = app_info;
 			}
@@ -106,10 +110,14 @@ overseer::send_requests(const inetv4_endpoints_t& endpoints) {
 	}
 }
 
-void
+bool
 overseer::receive_responces(const inetv4_endpoints_t& endpoints,
 						  	int timeout)
 {
+	if (m_responces.size() == endpoints.size()) {
+		return true;
+	}
+
 	// figure out sockets to poll
 	endpoints_socket_map sockets_to_poll;
 	for (size_t i = 0; i < endpoints.size(); ++i) {
@@ -132,7 +140,7 @@ overseer::receive_responces(const inetv4_endpoints_t& endpoints,
 	}
 
 	if (sockets_to_poll.empty()) {
-		return;
+		return false;
 	}
 
 	// create polling structures
@@ -152,20 +160,24 @@ overseer::receive_responces(const inetv4_endpoints_t& endpoints,
 	}
 
 	// poll for responce
-	int res = zmq_poll(&(poll_items[0]), poll_items.size(), 1000000);
+	int res = zmq_poll(&(poll_items[0]), poll_items.size(), timeout * 1000);
 
 	if (res <= 0) {
-		return;
+		return false;
 	}
 
-	// receive data
 	it = sockets_to_poll.begin();
-	while (it != sockets_to_poll.end()) {
-		zmq_socket_ptr_t	sock = it->second;
-		zmq::message_t		reply;
+	for (size_t i = 0; i < poll_items.size(); ++i) {
+		if ((ZMQ_POLLIN & poll_items[i].revents) != ZMQ_POLLIN) {
+			++it;
+			continue;
+		}
+
+		zmq::message_t reply;
 
 		try {
-			if (sock->recv(&reply, ZMQ_NOBLOCK)) {
+			zmq::socket_t& sock = (zmq::socket_t&)poll_items[i].socket;
+			if (sock.recv(&reply, ZMQ_NOBLOCK)) {
 				std::string data = std::string(static_cast<char*>(reply.data()), reply.size());
 				m_responces.insert(std::make_pair(it->first, data));
 			}
@@ -183,6 +195,8 @@ overseer::receive_responces(const inetv4_endpoints_t& endpoints,
 
 		++it;
 	}
+
+	return false;
 }
 
 void
@@ -233,13 +247,20 @@ overseer::parce_responces(const std::string& application_name) {
 	}
 }
 
-bool
+void
 overseer::fetch_apps_info(const inetv4_endpoints_t& endpoints,
 						  int timeout)
 {
 	connect(endpoints);
 	send_requests(endpoints);
-	receive_responces(endpoints, timeout);
+
+	progress_timer t;
+
+	while (t.elapsed().as_double() < (timeout / 1000.0)) {
+		if (receive_responces(endpoints, timeout)) {
+			break;
+		}
+	}
 }
 
 void

@@ -28,7 +28,7 @@ main(int argc, char** argv) {
 			("help", "Produce help message")
 			("hosts_file,h", value<std::string>()->default_value("tests/overseer_hosts"), "Path to hosts file")
 			("application,a", value<std::string>()->default_value("rimz_app@1"), "Application to keep track of")
-			("timeout,t", value<int>()->default_value(1000), "Timeout in milliseconds")
+			("timeout,t", value<int>()->default_value(3000), "Timeout in milliseconds")
 			("limit,l", value<bool>()->default_value(true), "Limit endpoints display to actively running")
 		;
 
