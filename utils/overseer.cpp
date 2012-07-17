@@ -57,8 +57,6 @@ overseer::connect(const inetv4_endpoints_t& endpoints) {
 			m_app_stats[endpoints[i]] = app_info;
 		}
 	}
-
-	//sleep(1);
 }
 
 void
@@ -255,11 +253,21 @@ overseer::fetch_apps_info(const inetv4_endpoints_t& endpoints,
 	send_requests(endpoints);
 
 	progress_timer t;
+	int tmp_timeout = timeout;
+	double elapsed = 0.0;
 
-	while (t.elapsed().as_double() < (timeout / 1000.0)) {
-		if (receive_responces(endpoints, timeout)) {
+	while (elapsed < (timeout / 1000.0)) {
+		tmp_timeout = timeout - (elapsed * 1000);
+
+		if (tmp_timeout < 0) {
+			tmp_timeout = 0;
+		}
+
+		if (receive_responces(endpoints, tmp_timeout)) {
 			break;
 		}
+
+		elapsed = t.elapsed().as_double();
 	}
 }
 
@@ -286,6 +294,15 @@ overseer::fetch_application_info(const std::string& hosts_file,
 
 void
 overseer::display_application_info(const std::string& application_name, bool active_only) {
+	if (active_only) {
+		std::cout << "limit: ON\n";
+	}
+	else {
+		std::cout << "limit: OFF\n";
+	}
+
+	std::cout << "m_app_stats size: " << m_app_stats.size() << std::endl;
+
 	std::cout << "app: " << application_name << ", hosts (" << m_app_stats.size() << "):\n";
 
 	endpoints_info_map::iterator it = m_app_stats.begin();
