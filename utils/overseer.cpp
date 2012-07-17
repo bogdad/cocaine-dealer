@@ -18,41 +18,234 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>. 
 */
 
-#include <iostream>
-#include <memory>
-#include <map>
+#include "overseer.hpp"
 
-#include <zmq.hpp>    
-#include <boost/program_options.hpp>
+overseer::overseer() {
+	m_zmq_context.reset(new zmq::context_t(1));
+	
+	// create metadata request message
+	Json::Value	msg(Json::objectValue);
+	msg["version"]	= 2;
+	msg["action"]	= "info";
 
-#include "json/json.h"
-#include "cocaine/dealer/heartbeats/file_hosts_fetcher.hpp"
-#include "parser.hpp"
+	Json::FastWriter	writer;
+	std::string			info_request = writer.write(msg);
 
-using namespace cocaine::dealer;
-using namespace boost::program_options;
+	m_zmq_message.reset(new zmq::message_t(info_request.length()));
+	memcpy((void *)m_zmq_message->data(), info_request.c_str(), info_request.length());
+}
 
-struct app_information {
-	app_information() :
-		uptime(0.0),
-		jobs_pending(0),
-		jobs_processed(0) {}
+overseer::~overseer() {
+	m_zmq_sockets.clear();
+	m_zmq_context.reset();
+}
 
-	cocaine_node_app_info_t info;
-	std::string status;
-	double uptime;
-	int jobs_pending;
-	int jobs_processed;
-};
+void
+overseer::connect(const inetv4_endpoints_t& endpoints) {
+	int	timeout = 0;
+	std::string uuid = "b4d62dad-c275-47d7-89db-f2b9e25c6815";
 
-bool fetch_app_info(const inetv4_endpoint_t& endpoint, std::string& info);
-void fetch_cloud_application_info(const std::string& hosts_file,
-								  const std::string& application_name);
+	// connect to all hosts
+	for (size_t i = 0; i < endpoints.size(); ++i) {	
+		// create socket
+		zmq_socket_ptr_t sock(new zmq::socket_t(*m_zmq_context, ZMQ_REQ));
+		sock->setsockopt(ZMQ_LINGER, &timeout, sizeof(timeout));	
+		sock->setsockopt(ZMQ_IDENTITY, uuid.c_str(), uuid.length());
 
+		// create connection string
+		std::string host_ip_str = nutils::ipv4_to_str(endpoints[i].host.ip);
+		std::string connection_str = "tcp://" + host_ip_str + ":";
+		connection_str += boost::lexical_cast<std::string>(endpoints[i].port);
 
+		// connect
+		try {
+			sock->connect(connection_str.c_str());
+			m_zmq_sockets[endpoints[i]] = sock;
+		}
+		catch (const std::exception& ex) {
+			app_information app_info;
+			app_info.status = app_info_status::HOST_UNREACHABLE;
+			m_app_stats[endpoints[i]] = app_info;
+		}
+	}
+}
 
-void fetch_cloud_application_info(const std::string& hosts_file,
-								  const std::string& application_name)
+void
+overseer::send_requests(const inetv4_endpoints_t& endpoints) {
+	for (size_t i = 0; i < endpoints.size(); ++i) {
+		// check whether endpoint is already processed
+		endpoints_info_map::const_iterator it;
+		it = m_app_stats.find(endpoints[i]);
+
+		if (it != m_app_stats.end()) {
+			continue;
+		}
+
+		// get endpoint socket
+		endpoints_socket_map::const_iterator sit;
+		sit = m_zmq_sockets.find(endpoints[i]);
+		if (sit == m_zmq_sockets.end()) {
+			continue;
+		}
+
+		// send info
+		app_information app_info;
+
+		try {
+			zmq_socket_ptr_t sock = sit->second;
+
+			if (true != sock->send(*m_zmq_message)) {
+				app_info.status = app_info_status::HOST_UNREACHABLE;
+				m_app_stats[endpoints[i]] = app_info;
+			}
+		}
+		catch (const std::exception& ex) {
+			app_info.status = app_info_status::HOST_UNREACHABLE;
+			m_app_stats[endpoints[i]] = app_info;
+		}
+	}
+}
+
+void
+overseer::receive_responces(const inetv4_endpoints_t& endpoints,
+						  	int timeout)
+{
+	// figure out sockets to poll
+	endpoints_socket_map sockets_to_poll;
+	for (size_t i = 0; i < endpoints.size(); ++i) {
+		// check whether endpoint is already processed
+		endpoints_info_map::const_iterator it;
+		it = m_app_stats.find(endpoints[i]);
+
+		if (it != m_app_stats.end()) {
+			continue;
+		}
+
+		// get endpoint socket
+		endpoints_socket_map::const_iterator sit;
+		sit = m_zmq_sockets.find(endpoints[i]);
+		if (sit == m_zmq_sockets.end()) {
+			continue;
+		}
+
+		sockets_to_poll.insert(std::make_pair(sit->first, sit->second));
+	}
+
+	if (sockets_to_poll.empty()) {
+		return;
+	}
+
+	// create polling structures
+	std::vector<zmq_pollitem_t> poll_items;
+
+	endpoints_socket_map::iterator it = sockets_to_poll.begin();
+	while (it != sockets_to_poll.end()) {
+		zmq_pollitem_t poll_item;
+		poll_item.socket = *(it->second);
+		poll_item.fd = 0;
+		poll_item.events = ZMQ_POLLIN;
+		poll_item.revents = 0;
+
+		poll_items.push_back(poll_item);
+
+		++it;
+	}
+
+	// poll for responce
+	int res = zmq_poll(&(poll_items[0]), poll_items.size(), 1000000);
+
+	if (res <= 0) {
+		return;
+	}
+
+	// receive data
+	it = sockets_to_poll.begin();
+	while (it != sockets_to_poll.end()) {
+		zmq_socket_ptr_t	sock = it->second;
+		zmq::message_t		reply;
+
+		try {
+			if (sock->recv(&reply, ZMQ_NOBLOCK)) {
+				std::string data = std::string(static_cast<char*>(reply.data()), reply.size());
+				m_responces.insert(std::make_pair(it->first, data));
+			}
+			else {
+				app_information app_info;
+				app_info.status = app_info_status::HOST_UNREACHABLE;
+				m_app_stats[it->first] = app_info;
+			}
+		}
+		catch (const std::exception& ex) {
+			app_information app_info;
+			app_info.status = app_info_status::HOST_UNREACHABLE;
+			m_app_stats[it->first] = app_info;
+		}
+
+		++it;
+	}
+}
+
+void
+overseer::parce_responces(const std::string& application_name) {
+	endpoints_responce_map::iterator it = m_responces.begin();
+
+	// parse responces
+	while (it != m_responces.end()) {
+		cocaine_node_info_t			node_info;
+		cocaine_node_info_parser_t	parser;
+		app_information				app_info;
+
+		if (parser.parse(it->second, node_info)) {
+			
+			app_info.uptime = node_info.uptime;
+			app_info.jobs_pending = node_info.pending_jobs;
+			app_info.jobs_processed = node_info.processed_jobs;
+
+			if (node_info.app_by_name(application_name, app_info.info)) {
+				switch (app_info.info.status) {
+					case APP_STATUS_RUNNING:
+						app_info.status = app_info_status::RUNNING;
+						break;
+					case APP_STATUS_STOPPING:
+						app_info.status = app_info_status::STOPPING;
+						break;
+					case APP_STATUS_STOPPED:
+						app_info.status = app_info_status::STOPPED;
+						break;
+					default:
+						app_info.status = app_info_status::UNKNOWN;
+						break;
+				}
+			}
+			else {
+				app_info.status = app_info_status::NO_APP;
+			}
+
+			m_app_stats[it->first] = app_info;
+		}
+		else {
+			app_information app_info;
+			app_info.status = app_info_status::BAD_METADATA;
+			m_app_stats[it->first] = app_info;
+		}
+
+		++it;
+	}
+}
+
+bool
+overseer::fetch_apps_info(const inetv4_endpoints_t& endpoints,
+						  int timeout)
+{
+	connect(endpoints);
+	send_requests(endpoints);
+	receive_responces(endpoints, timeout);
+}
+
+void
+overseer::fetch_application_info(const std::string& hosts_file,
+								 const std::string& application_name,
+								 int timeout)
 {
 	// prepare hosts path
 	char* absolute_hosts_file = realpath(hosts_file.c_str(), NULL);
@@ -63,70 +256,34 @@ void fetch_cloud_application_info(const std::string& hosts_file,
 	}
 
 	file_hosts_fetcher_t hosts_fetcher;
-	file_hosts_fetcher_t::inetv4_endpoints_t endpoints;
+	inetv4_endpoints_t endpoints;
 
-	// get endpoints list
 	hosts_fetcher.get_hosts(endpoints, hosts_file_tmp.c_str());
+	fetch_apps_info(endpoints, timeout);
+	parce_responces(application_name);
+}
 
-	typedef std::map<inetv4_endpoint_t, app_information> endpoints_info_map;
+void
+overseer::display_application_info(const std::string& application_name, bool active_only) {
+	std::cout << "app: " << application_name << ", hosts (" << m_app_stats.size() << "):\n";
 
-	endpoints_info_map app_stats;
+	endpoints_info_map::iterator it = m_app_stats.begin();
 
-	// get endpoints data
-	for (size_t i = 0; i < endpoints.size(); ++i) {
-		std::string str_info;
+	while ( it != m_app_stats.end()) {
+		app_information ai = it->second;
 
-		app_information app_info;
-
-		if (fetch_app_info(endpoints[i], str_info)) {
-			cocaine_node_info_t node_info;
-			cocaine_node_info_parser_t parser;
-
-			if (parser.parse(str_info, node_info)) {
-				app_info.uptime = node_info.uptime;
-				app_info.jobs_pending = node_info.pending_jobs;
-				app_info.jobs_processed = node_info.processed_jobs;
-
-				if (node_info.app_by_name(application_name, app_info.info)) {
-					switch (app_info.info.status) {
-						case APP_STATUS_RUNNING:
-							app_info.status = "running";
-							break;
-						case APP_STATUS_STOPPING:
-							app_info.status = "stopping";
-							break;
-						case APP_STATUS_STOPPED:
-							app_info.status = "stopped";
-							break;
-						default:
-							app_info.status = "unknown";
-							break;
-					}
-				}
-				else {
-					app_info.status = "no app deployed";
-				}
-			}
-			else {
-				app_info.status = "bad metadata";
+		if (active_only) {
+			if (ai.status != app_info_status::RUNNING) {
+				++it;
+				continue;
 			}
 		}
-		else {
-			app_info.status = "host unreachable";
-		}
 
-		app_stats[endpoints[i]] = app_info;
-	}
-
-	std::cout << "app: " << application_name << ", hosts (" << app_stats.size() << "):\n";
-
-	for (endpoints_info_map::iterator it = app_stats.begin(); it != app_stats.end(); ++it) {
 		std::cout << " - " << it->first.as_string() << std::endl;
 
-		app_information ai = it->second;
-		std::cout << "\tstatus:    " << ai.status << std::endl;
+		std::cout << "\tstatus:    " << app_info_status::str(ai.status) << std::endl;
 
-		if (ai.status != "host unreachable") {
+		if (ai.status != app_info_status::HOST_UNREACHABLE) {
 			std::cout << "\tuptime:    " << std::fixed << std::setprecision(7) << ai.uptime << std::endl;
 
 			std::stringstream slaves;
@@ -138,145 +295,7 @@ void fetch_cloud_application_info(const std::string& hosts_file,
 			std::cout << "pending " << ai.jobs_pending << ", ";
 			std::cout << "processed " << ai.jobs_processed << std::endl;
 		}
+
+		++it;
 	}
-}
-
-bool fetch_app_info(const inetv4_endpoint_t& endpoint, std::string& info) {
-	std::auto_ptr<zmq::context_t> zmq_context(new zmq::context_t(1));
-
-	// create req socket
-	std::auto_ptr<zmq::socket_t> zmq_socket;
-	zmq_socket.reset(new zmq::socket_t(*zmq_context, ZMQ_REQ));
-	std::string ex_err;
-
-	// connect to host
-	std::string host_ip_str = nutils::ipv4_to_str(endpoint.host.ip);
-	std::string connection_str = "tcp://" + host_ip_str + ":";
-	connection_str += boost::lexical_cast<std::string>(endpoint.port);
-
-	int timeout = 0;
-	zmq_socket->setsockopt(ZMQ_LINGER, &timeout, sizeof(timeout));
-
-	std::string uuid = "b4d62dad-c275-47d7-89db-f2b9e25c6815";
-	zmq_socket->setsockopt(ZMQ_IDENTITY, uuid.c_str(), uuid.length());
-
-	try {
-		zmq_socket->connect(connection_str.c_str());
-	}
-	catch (const std::exception& ex) {
-		zmq_socket.reset();
-		zmq_context.reset();
-
-		std::cout << ex.what() << std::endl;
-		return false;
-	}
-
-	// send request for cocaine metadata
-	Json::Value msg(Json::objectValue);
-	Json::FastWriter writer;
-
-	msg["version"] = 2;
-	msg["action"] = "info";
-
-	std::string info_request = writer.write(msg);
-	zmq::message_t message(info_request.length());
-	memcpy((void *)message.data(), info_request.c_str(), info_request.length());
-
-	bool sent_request_ok = true;
-
-	try {
-		sent_request_ok = zmq_socket->send(message);
-	}
-	catch (const std::exception& ex) {
-		sent_request_ok = false;
-		ex_err = ex.what();
-	}
-
-	if (!sent_request_ok) {
-		zmq_socket.reset();
-		zmq_context.reset();
-
-		return false;
-	}
-
-	// create polling structure
-	zmq_pollitem_t poll_items[1];
-	poll_items[0].socket = *zmq_socket;
-	poll_items[0].fd = 0;
-	poll_items[0].events = ZMQ_POLLIN;
-	poll_items[0].revents = 0;
-
-	// poll for responce
-	int res = zmq_poll(poll_items, 1, 5000);
-
-	if (res <= 0) {
-		zmq_socket.reset();
-		zmq_context.reset();
-
-		return false;
-	}
-
-	if ((ZMQ_POLLIN & poll_items[0].revents) != ZMQ_POLLIN) {
-		zmq_socket.reset();
-		zmq_context.reset();
-
-		return false;
-	}
-
-	// receive cocaine control data
-	zmq::message_t reply;
-	bool received_response_ok = true;
-
-	try {
-		received_response_ok = zmq_socket->recv(&reply);
-		info = std::string(static_cast<char*>(reply.data()), reply.size());
-	}
-	catch (const std::exception& ex) {
-		received_response_ok = false;
-		ex_err = ex.what();
-	}
-
-	if (!received_response_ok) {
-		zmq_socket.reset();
-		zmq_context.reset();
-
-		return false;
-	}
-
-	zmq_socket.reset();
-	zmq_context.reset();
-
-	return true;
-}
-
-int
-main(int argc, char** argv) {
-	try {
-		options_description desc("Allowed options");
-		desc.add_options()
-			("help", "Produce help message")
-			("hosts_file,h", value<std::string>()->default_value("tests/overseer_hosts"), "Path to hosts file")
-			("application,t", value<std::string>()->default_value("rimz_app@1"), "Application to keep track of")
-		;
-
-		variables_map vm;
-		store(parse_command_line(argc, argv, desc), vm);
-		notify(vm);
-
-		if (vm.count("help")) {
-			std::cout << desc << std::endl;
-			return EXIT_SUCCESS;
-		}
-
-		fetch_cloud_application_info(vm["hosts_file"].as<std::string>(),
-									 vm["application"].as<std::string>());
-
-		return EXIT_SUCCESS;
-	}
-	catch (const std::exception& ex) {
-		std::cerr << ex.what() << std::endl;
-		return EXIT_FAILURE;
-	}
-
-	return EXIT_SUCCESS;
 }
