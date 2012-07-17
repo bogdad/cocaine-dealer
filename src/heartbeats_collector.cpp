@@ -326,7 +326,7 @@ heartbeats_collector_t::get_metainfo_from_endpoint(const inetv4_endpoint_t& endp
 	poll_items[0].revents = 0;
 
 	// poll for responce
-	int res = zmq_poll(poll_items, 1, host_socket_ping_timeout);
+	int res = zmq_poll(poll_items, 1, host_socket_ping_timeout * 1000);
 	if (res <= 0) {
 		return false;
 	}
