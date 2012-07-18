@@ -169,6 +169,8 @@ dealer_impl_t::send_messages(const void* data,
 
 bool
 dealer_impl_t::regex_match(const std::string& regex_str, const std::string& value) {
+	boost::mutex::scoped_lock lock(m_mutex);
+	
 	std::map<std::string, boost::xpressive::sregex>::iterator it;
 	it = m_regex_cache.find(regex_str);
 
