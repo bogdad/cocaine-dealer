@@ -31,6 +31,7 @@
 #include <boost/date_time.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/xpressive/xpressive.hpp>
 
 #include "cocaine/dealer/forwards.hpp"
 #include "cocaine/dealer/core/context.hpp"
@@ -47,31 +48,45 @@ class dealer_impl_t :
 	public dealer_object_t
 {
 public:
+	typedef boost::shared_ptr<response_t> response_ptr_t;
+	typedef std::vector<response_ptr_t> responses_list_t;
+
+	typedef boost::shared_ptr<service_t> service_ptr_t;
+	typedef std::vector<cocaine_endpoint_t> cocaine_endpoints_list_t;
+
+	typedef std::map<std::string, service_ptr_t> services_map_t;
+	typedef std::map<std::string, cocaine_endpoints_list_t> handles_endpoints_t;
+
+public:
 	explicit dealer_impl_t(const std::string& config_path);
 	virtual ~dealer_impl_t();
 
-	std::string send_message(const boost::shared_ptr<message_iface>& msg,
-							 const boost::shared_ptr<response_t>& resp);
+	response_ptr_t
+	send_message(const void* data,
+				 size_t size,
+				 const message_path_t& path,
+				 const message_policy_t& policy);
 
-	boost::shared_ptr<response_t> send_message(const void* data,
-											   size_t size,
-											   const message_path_t& path,
-											   const message_policy_t& policy);
+	
+	responses_list_t
+	send_messages(const void* data,
+				  size_t size,
+				  const message_path_t& path,
+				  const message_policy_t& policy);
+	
 
-	void unset_response_callback(const std::string& message_uuid,
-								 const message_path_t& path);
+	boost::shared_ptr<message_iface>
+	create_message(const void* data,
+				   size_t size,
+				   const message_path_t& path,
+				   const message_policy_t& policy);
 
-	boost::shared_ptr<message_iface> create_message(const void* data,
-													size_t size,
-													const message_path_t& path,
-													const message_policy_t& policy);
+	void detach_response_callback(const std::string& message_uuid,
+								  const message_path_t& path);
 
 	boost::shared_ptr<dealer_impl_t> shared_ptr();
 
-private:
-	typedef std::map<std::string, boost::shared_ptr<service_t> > services_map_t;
-	typedef std::map<std::string, std::vector<cocaine_endpoint_t> > handles_endpoints_t;
-	
+private:	
 	void connect();
 	void disconnect();
 
@@ -79,10 +94,14 @@ private:
 									   const handles_endpoints_t& endpoints_for_handles);
 
 	// restoring messages from storage cache
-	void load_cached_messages_for_service(boost::shared_ptr<service_t>& service);
+	void load_cached_messages_for_service(service_ptr_t& service);
 	void storage_iteration_callback(void* data, uint64_t size, int column);
 
+	bool regex_match(const std::string& regex_str, const std::string& value);
+
 private:
+	std::map<std::string, boost::xpressive::sregex> m_regex_cache;
+
 	size_t m_messages_cache_size;
 
 	// dealer service name mapped to service
@@ -92,7 +111,7 @@ private:
 	std::auto_ptr<heartbeats_collector_t> m_heartbeats_collector;
 
 	// temporary service ptr (2 DO: refactor this utter crap)
-	boost::shared_ptr<service_t> m_restored_service_tmp_ptr;
+	service_ptr_t m_restored_service_tmp_ptr;
 
 	// synchronization
 	boost::mutex m_mutex;

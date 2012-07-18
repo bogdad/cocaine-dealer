@@ -144,6 +144,48 @@ dealer_impl_t::send_message(const void* data,
 	return resp;
 }
 
+std::vector<boost::shared_ptr<response_t> >
+dealer_impl_t::send_messages(const void* data,
+							 size_t size,
+							 const message_path_t& path,
+							 const message_policy_t& policy)
+{
+	std::vector<boost::shared_ptr<response_t> > responces_list;
+
+	const configuration_t::services_list_t& services_info_list = config()->services_list();
+	configuration_t::services_list_t::const_iterator it = services_info_list.begin();
+	for (; it != services_info_list.end(); ++it) {
+		if (regex_match(path.service_alias, it->second.name)) {
+			message_path_t exact_path = path;
+			exact_path.service_alias = it->second.name; 
+
+			boost::shared_ptr<response_t> resp = send_message(data, size, exact_path, policy);
+			responces_list.push_back(resp);
+		}
+	}
+	
+	return responces_list;
+}
+
+bool
+dealer_impl_t::regex_match(const std::string& regex_str, const std::string& value) {
+	std::map<std::string, boost::xpressive::sregex>::iterator it;
+	it = m_regex_cache.find(regex_str);
+
+	boost::xpressive::sregex rex;
+	boost::xpressive::smatch what;
+
+	if (it != m_regex_cache.end()) {
+		rex = it->second;
+	}
+	else {
+		rex = boost::xpressive::sregex::compile(regex_str);
+		m_regex_cache[regex_str] = rex;
+	}
+
+	return boost::xpressive::regex_match(value, what, rex);
+}
+
 void
 dealer_impl_t::connect() {
 	log(PLOG_DEBUG, "creating heartbeats collector");
@@ -223,58 +265,9 @@ dealer_impl_t::create_message(const void* data,
 	return msg;
 }
 
-std::string
-dealer_impl_t::send_message(const boost::shared_ptr<message_iface>& msg,
-						  const boost::shared_ptr<response_t>& response_t)
-{
-	BOOST_VERIFY(!m_is_dead);
-	
-	boost::mutex::scoped_lock lock(m_mutex);
-	
-	// find service to send message to
-	std::string uuid;
-	services_map_t::iterator it = m_services.find(msg->path().service_alias);
-
-	if (it == m_services.end()) {
-		std::string error_str = "no service with name " + msg->path().service_alias;
-		error_str += " found at " + std::string(BOOST_CURRENT_FUNCTION);
-		throw dealer_error(location_error, error_str);
-	}
-
-	assert(it->second);
-
-	if (it->second->is_dead()) {
-		throw dealer_error(request_error, "service %s is being killed", msg->path().service_alias.c_str());
-	}
-
-	uuid = msg->uuid();
-
-	// assign callback
-	//std::string message_str = "registering callback for message with uuid: " + msg->uuid();
-	//logger()->log(PLOG_DEBUG, message_str);
-
-	it->second->register_responder_callback(uuid, response_t);
-
-	//message_str = "registered callback for message with uuid: " + msg->uuid();
-	//logger()->log(PLOG_DEBUG, message_str);
-
-	// send message to service
-	it->second->send_message(msg);
-
-	std::string message_str = "enqued msg (%d bytes) with uuid: %s to %s";
-
-	log(PLOG_DEBUG,
-		message_str,
-		msg->size(),
-		uuid.c_str(),
-		msg->path().as_string().c_str());
-
-	return uuid;
-}
-
 void
-dealer_impl_t::unset_response_callback(const std::string& message_uuid,
-								 	 const message_path_t& path)
+dealer_impl_t::detach_response_callback(const std::string& message_uuid,
+								 		const message_path_t& path)
 {
 	boost::mutex::scoped_lock lock(m_mutex);
 

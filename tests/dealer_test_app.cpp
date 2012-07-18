@@ -133,6 +133,30 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 
 int
 main(int argc, char** argv) {
+	/*
+	dealer_t			d("tests/config.json");
+	message_path_t		path("rimz.*", "rimz_func");
+	message_policy_t	policy;
+	std::string			payload = "response chunk: ";
+
+	policy.max_retries = -1;
+
+	for (int j = 0; j < 100; ++j) {
+		std::vector<boost::shared_ptr<response_t> > responces_list;
+		responces_list = d.send_messages(payload.data(), payload.size(), path, policy);
+
+		data_container data;
+
+		for (size_t i = 0; i < responces_list.size(); ++i) {
+			while (responces_list[i]->get(&data)) {
+				std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+			}
+		}
+	}
+
+	return EXIT_SUCCESS;
+	*/
+
 	try {
 		options_description desc("Allowed options");
 		desc.add_options()

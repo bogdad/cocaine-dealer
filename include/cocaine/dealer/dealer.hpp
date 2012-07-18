@@ -38,20 +38,29 @@ namespace dealer {
 class dealer_t : private boost::noncopyable {
 public:
 	typedef boost::function<void(const response_data&, const response_info&)> response_callback;
+	typedef boost::shared_ptr<response_t> response_ptr_t;
+	typedef std::vector<response_ptr_t> responses_list_t;
 
+public:
 	explicit dealer_t(const std::string& config_path = "");
 	virtual ~dealer_t();
 
-	boost::shared_ptr<response_t>
-		send_message(const void* data,
-					 size_t size,
-					 const message_path_t& path,
-					 const message_policy_t& policy = message_policy_t());
+	response_ptr_t
+	send_message(const void* data,
+				 size_t size,
+				 const message_path_t& path,
+				 const message_policy_t& policy = message_policy_t());
 
-	template <typename T> boost::shared_ptr<response_t>
-		send_message(const T& object,
-					 const message_path_t& path,
-					 const message_policy_t& policy = message_policy_t())
+	responses_list_t
+	send_messages(const void* data,
+				  size_t size,
+				  const message_path_t& path,
+				  const message_policy_t& policy = message_policy_t());
+
+	template <typename T> response_ptr_t
+	send_message(const T& object,
+				 const message_path_t& path,
+				 const message_policy_t& policy = message_policy_t())
 	{
 		msgpack::sbuffer buffer;
 		msgpack::pack(buffer, object);

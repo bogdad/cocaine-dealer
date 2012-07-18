@@ -285,10 +285,32 @@ handle_t::process_deadlined_messages() {
 				expired_messages.at(i)->increment_retries_count();
 				m_message_cache->enqueue_with_priority(expired_messages.at(i));
 
-				log(PLOG_WARNING, "no ACK, resheduled message " + expired_messages.at(i)->uuid());
+				std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
+				std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
+				std::string curr_timestamp_str = time_value::get_current_time().as_string();
+
+				std::string log_str = "no ACK, resheduled message %s, (enqued: %s, sent: %s, curr: %s)";
+
+				log(PLOG_WARNING, log_str,
+					expired_messages.at(i)->uuid().c_str(),
+					enqued_timestamp_str.c_str(),
+					sent_timestamp_str.c_str(),
+					curr_timestamp_str.c_str());
 			}
 			else {
-				log(PLOG_ERROR, "reshedule message policy exceeded, did not receive ACK " + expired_messages.at(i)->uuid());
+				std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
+				std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
+				std::string curr_timestamp_str = time_value::get_current_time().as_string();
+
+				std::string log_str = "reshedule message policy exceeded, did not receive ACK ";
+				log_str += "for %s, (enqued: %s, sent: %s, curr: %s)";
+
+				log(PLOG_WARNING, log_str,
+					expired_messages.at(i)->uuid().c_str(),
+					enqued_timestamp_str.c_str(),
+					sent_timestamp_str.c_str(),
+					curr_timestamp_str.c_str());
+
 				cached_response_prt_t new_response;
 				new_response.reset(new cached_response_t(expired_messages.at(i)->uuid(),
 														 "",

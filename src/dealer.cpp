@@ -40,11 +40,20 @@ dealer_t::~dealer_t() {
 
 boost::shared_ptr<response_t>
 dealer_t::send_message(const void* data,
-					 size_t size,
-					 const message_path_t& path,
-					 const message_policy_t& policy)
+                       size_t size,
+                       const message_path_t& path,
+                       const message_policy_t& policy)
 {
 	return m_impl->send_message(data, size, path, policy);
+}
+
+std::vector<boost::shared_ptr<response_t> >
+dealer_t::send_messages(const void* data,
+                        size_t size,
+                        const message_path_t& path,
+                        const message_policy_t& policy)
+{
+    return m_impl->send_messages(data, size, path, policy);
 }
 
 } // namespace dealer

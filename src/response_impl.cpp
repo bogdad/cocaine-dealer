@@ -51,7 +51,7 @@ response_impl_t::~response_impl_t() {
 
 	boost::shared_ptr<dealer_impl_t> dealer_ptr = m_dealer.lock();
 	if (dealer_ptr) {
-		dealer_ptr->unset_response_callback(m_uuid, m_path);
+		dealer_ptr->detach_response_callback(m_uuid, m_path);
 	}	
 }
 

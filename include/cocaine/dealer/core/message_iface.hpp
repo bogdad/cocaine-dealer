@@ -70,7 +70,7 @@ public:
 
 	static const size_t MAX_MESSAGE_DATA_SIZE = 2147483648; // 2 gb
 	static const size_t UUID_SIZE = 36; // bytes
-	static const size_t ACK_TIMEOUT = 100; // millisecs
+	static const size_t ACK_TIMEOUT = 1000; // millisecs
 };
 
 } // namespace dealer
