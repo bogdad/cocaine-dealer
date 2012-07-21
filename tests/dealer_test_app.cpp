@@ -30,6 +30,7 @@
 #include "cocaine/dealer/utils/progress_timer.hpp"
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/utils/refresher.hpp"
+#include "cocaine/dealer/utils/networking.hpp"
 
 using namespace cocaine::dealer;
 using namespace boost::program_options;
@@ -133,6 +134,13 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 
 int
 main(int argc, char** argv) {
+	int ip = nutils::ipv4_from_hint(argv[1]);
+	std::string ip_str = nutils::ipv4_to_str(ip);
+	std::cout << ip_str << std::endl;
+
+	int ip2 = nutils::str_to_ipv4(ip_str);
+	std::cout << nutils::ipv4_to_str(ip2) << std::endl;
+	return EXIT_SUCCESS;
 	/*
 	dealer_t			d("tests/config.json");
 	message_path_t		path("rimz.*", "rimz_func");
