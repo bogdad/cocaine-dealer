@@ -69,6 +69,34 @@ public:
 	static std::string hostname_for_ipv4(int ip) {
 		return hostname_for_ipv4(ipv4_to_str(ip));
 	}
+
+    static int ipv4_from_hint(const std::string& hint) {
+        addrinfo hints;
+
+        hints.ai_family     = AF_UNSPEC;
+        hints.ai_socktype   = SOCK_STREAM;
+        hints.ai_flags      = 0;
+        hints.ai_protocol   = 0;
+        hints.ai_canonname  = NULL;
+        hints.ai_addr       = NULL;
+        hints.ai_next       = NULL;
+
+        addrinfo* result;
+        addrinfo* rp;
+
+        int retval = getaddrinfo(hint.c_str(), NULL, &hints, &result);
+        if (retval != 0) {
+            return 0;
+        }
+     
+        for (rp = result; rp != NULL; rp = rp->ai_next) {
+            const int buff_len = 512;
+            sockaddr_in* sai = (sockaddr_in*)rp->ai_addr;
+            return sai->sin_addr.s_addr;
+        }
+
+        return 0;
+    }
 };
 
 } // namespace dealer
