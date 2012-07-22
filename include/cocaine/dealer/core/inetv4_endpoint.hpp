@@ -54,6 +54,12 @@ public:
 		port = boost::lexical_cast<unsigned short>(port_);
 	}
 
+	inetv4_endpoint_t(unsigned int ip_, const std::string& port_) :
+		host(inetv4_host_t(ip_))
+	{
+		port = boost::lexical_cast<unsigned short>(port_);
+	}
+
 	inetv4_endpoint_t(const inetv4_endpoint_t& rhs) :
 		host(rhs.host),
 		port(rhs.port) {}

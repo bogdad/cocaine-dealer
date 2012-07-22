@@ -38,9 +38,9 @@ public:
 	
 	bool get_hosts(inetv4_endpoints_t& endpoints, service_info_t& service_info);
     bool get_hosts(inetv4_endpoints_t& endpoints, const std::string& source);
+
 private:
-	service_info_t m_service_info;
-	time_t         m_file_modification_time;
+	time_t m_file_modification_time;
 };
 
 } // namespace dealer

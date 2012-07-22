@@ -26,11 +26,6 @@
 #include <fstream>
 #include <iostream>
 
-#include <boost/current_function.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include <cocaine/dealer/utils/error.hpp>
 #include "cocaine/dealer/heartbeats/file_hosts_fetcher.hpp"
 
@@ -43,7 +38,7 @@ file_hosts_fetcher_t::file_hosts_fetcher_t() :
 }
 
 file_hosts_fetcher_t::file_hosts_fetcher_t(const service_info_t& service_info) :
-	m_service_info(service_info),
+	hosts_fetcher_iface(service_info),
 	m_file_modification_time(0)
 {
 }
@@ -97,36 +92,7 @@ file_hosts_fetcher_t::get_hosts(inetv4_endpoints_t& endpoints, const std::string
 
 	file.close();
 	
-	// get hosts from received data
-	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-	boost::char_separator<char> sep("\n");
-	tokenizer tokens(buffer, sep);
-
-	for (tokenizer::iterator tok_iter = tokens.begin(); tok_iter != tokens.end(); ++tok_iter) {
-		try {
-			std::string line = *tok_iter;
-
-			boost::trim(line);
-			if (line.empty() || line.at(0) == '#') {
-				continue;
-			}
-
-			// look for ip/port parts
-			size_t where = line.find_last_of(":");
-
-			if (where == std::string::npos) {
-				endpoints.push_back(inetv4_endpoint_t(inetv4_host_t(line), default_control_port));
-			}
-			else {
-				std::string ip = line.substr(0, where);
-				std::string port = line.substr(where + 1, (line.length() - (where + 1)));
-
-				endpoints.push_back(inetv4_endpoint_t(ip, port));
-			}
-		}
-		catch (...) {
-		}
-	}
+	parse_hosts_data(buffer, endpoints);
 
 	return true;
 }
