@@ -67,13 +67,22 @@ public:
 				 const message_path_t& path,
 				 const message_policy_t& policy);
 
+	response_ptr_t
+	send_message(const void* data,
+				 size_t size,
+				 const message_path_t& path);
+
 	
 	responses_list_t
 	send_messages(const void* data,
 				  size_t size,
 				  const message_path_t& path,
 				  const message_policy_t& policy);
-	
+
+	responses_list_t
+	send_messages(const void* data,
+				  size_t size,
+				  const message_path_t& path);
 
 	boost::shared_ptr<message_iface>
 	create_message(const void* data,
@@ -99,6 +108,8 @@ private:
 
 	bool regex_match(const std::string& regex_str, const std::string& value);
 
+	boost::shared_ptr<service_t> get_service(const std::string& service_alias);
+
 private:
 	std::map<std::string, boost::xpressive::sregex> m_regex_cache;
 
@@ -115,6 +126,7 @@ private:
 
 	// synchronization
 	boost::mutex m_mutex;
+	boost::mutex m_regex_mutex;
 
 	// alive state
 	bool m_is_dead;

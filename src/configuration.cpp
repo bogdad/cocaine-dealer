@@ -283,6 +283,15 @@ configuration_t::parse_services_settings(const Json::Value& config_value) {
 			throw internal_error(error_str);
 		}
 
+		// default message policy
+		const Json::Value mpolicy = service_data["policy"];
+		if (mpolicy.isObject()) {
+			si.policy.urgent = mpolicy.get("urgent", si.policy.urgent).asBool();
+			si.policy.timeout = mpolicy.get("timeout", si.policy.timeout).asFloat();
+			si.policy.deadline = mpolicy.get("deadline", si.policy.deadline).asFloat();
+			si.policy.max_retries = mpolicy.get("max_retries", si.policy.max_retries).asInt();
+		}
+
 		// check for duplicate services
 		std::map<std::string, service_info_t>::iterator lit = m_services_list.begin();
 		for (;lit != m_services_list.end(); ++lit) {

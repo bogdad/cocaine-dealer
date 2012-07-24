@@ -27,6 +27,7 @@
 
 #include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/defaults.hpp"
+#include "cocaine/dealer/message_policy.hpp"
 
 namespace cocaine {
 namespace dealer {
@@ -97,6 +98,9 @@ public:
 	std::string hosts_source;
 	enum e_autodiscovery_type discovery_type;
 	short default_discovery_port;
+
+	// default service message policy
+	message_policy_t policy;
 };
 
 } // namespace dealer

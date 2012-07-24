@@ -49,22 +49,41 @@ public:
 	send_message(const void* data,
 				 size_t size,
 				 const message_path_t& path,
-				 const message_policy_t& policy = message_policy_t());
+				 const message_policy_t& policy);
+
+	response_ptr_t
+	send_message(const void* data,
+				 size_t size,
+				 const message_path_t& path);
 
 	responses_list_t
 	send_messages(const void* data,
 				  size_t size,
 				  const message_path_t& path,
-				  const message_policy_t& policy = message_policy_t());
+				  const message_policy_t& policy);
+
+	responses_list_t
+	send_messages(const void* data,
+				  size_t size,
+				  const message_path_t& path);
 
 	template <typename T> response_ptr_t
 	send_message(const T& object,
 				 const message_path_t& path,
-				 const message_policy_t& policy = message_policy_t())
+				 const message_policy_t& policy)
 	{
 		msgpack::sbuffer buffer;
 		msgpack::pack(buffer, object);
 		return send_message(reinterpret_cast<const void*>(buffer.data()), buffer.size(), path, policy);
+	}
+
+	template <typename T> response_ptr_t
+	send_message(const T& object,
+				 const message_path_t& path)
+	{
+		msgpack::sbuffer buffer;
+		msgpack::pack(buffer, object);
+		return send_message(reinterpret_cast<const void*>(buffer.data()), buffer.size(), path);
 	}
 
 private:

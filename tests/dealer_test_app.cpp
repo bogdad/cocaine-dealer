@@ -43,9 +43,6 @@ void worker(dealer_t* d,
 {
 	message_path_t path("rimz_app", "rimz_func");
 	//message_path_t path("testing", "method3");
-	message_policy_t policy;
-	policy.deadline = 1.0;
-	policy.max_retries = -1;
 	std::string payload = "response chunk: ";
 
 	while ((*dealer_messages_count)[dealer_index] >= 0) {
@@ -53,12 +50,12 @@ void worker(dealer_t* d,
 			boost::shared_ptr<response_t> resp;
 
 			if (d) {
-				resp = d->send_message(payload.data(), payload.size(), path, policy);
+				resp = d->send_message(payload.data(), payload.size(), path);
 			}
 
 			data_container data;
 			while (resp->get(&data)) {
-				std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+				//std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 			}
 		}
 		catch (const dealer_error& err) {

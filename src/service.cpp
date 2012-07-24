@@ -231,15 +231,17 @@ service_t::enque_to_handle(const cached_message_prt_t& message) {
 	assert(handle);
 	handle->enqueue_message(message);
 
-	const static std::string message_str = "enqued msg (%d bytes) with uuid: %s to existing %s (%s)";
-	std::string enqued_timestamp_str = message->enqued_timestamp().as_string();
+	if (log_flag_enabled(PLOG_DEBUG)) {
+		const static std::string message_str = "enqued msg (%d bytes) with uuid: %s to existing %s (%s)";
+		std::string enqued_timestamp_str = message->enqued_timestamp().as_string();
 
-	log(PLOG_DEBUG,
-		message_str,
-		message->size(),
-		message->uuid().c_str(),
-		message->path().as_string().c_str(),
-		enqued_timestamp_str.c_str());
+		log(PLOG_DEBUG,
+			message_str,
+			message->size(),
+			message->uuid().c_str(),
+			message->path().as_string().c_str(),
+			enqued_timestamp_str.c_str());
+	}
 
 	return true;
 }
@@ -263,15 +265,17 @@ service_t::enque_to_unhandled(const cached_message_prt_t& message) {
 		queue->push_back(message);
 	}
 
-	const static std::string message_str = "enqued msg (%d bytes) with uuid: %s to unhandled %s (%s)";
-	std::string enqued_timestamp_str = message->enqued_timestamp().as_string();
+	if (log_flag_enabled(PLOG_DEBUG)) {
+		const static std::string message_str = "enqued msg (%d bytes) with uuid: %s to unhandled %s (%s)";
+		std::string enqued_timestamp_str = message->enqued_timestamp().as_string();
 
-	log(PLOG_DEBUG,
-		message_str,
-		message->size(),
-		message->uuid().c_str(),
-		message->path().as_string().c_str(),
-		enqued_timestamp_str.c_str());
+		log(PLOG_DEBUG,
+			message_str,
+			message->size(),
+			message->uuid().c_str(),
+			message->path().as_string().c_str(),
+			enqued_timestamp_str.c_str());
+	}
 }
 
 boost::shared_ptr<std::deque<boost::shared_ptr<message_iface> > >
@@ -587,14 +591,16 @@ service_t::check_for_deadlined_messages() {
 			std::string sent_timestamp_str = (*expired_qit)->sent_timestamp().as_string();
 			std::string curr_timestamp_str = time_value::get_current_time().as_string();
 
-			std::string log_str = "deadline policy exceeded, for unhandled message %s, (enqued: %s, sent: %s, curr: %s)";
+			if (log_flag_enabled(PLOG_ERROR)) {
+				std::string log_str = "deadline policy exceeded, for unhandled message %s, (enqued: %s, sent: %s, curr: %s)";
 
-			log(PLOG_ERROR,
-				log_str,
-				(*expired_qit)->uuid().c_str(),
-				enqued_timestamp_str.c_str(),
-				sent_timestamp_str.c_str(),
-				curr_timestamp_str.c_str());
+				log(PLOG_ERROR,
+					log_str,
+					(*expired_qit)->uuid().c_str(),
+					enqued_timestamp_str.c_str(),
+					sent_timestamp_str.c_str(),
+					curr_timestamp_str.c_str());
+			}
 
 			enqueue_responce(response_t);
 		}

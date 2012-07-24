@@ -388,6 +388,10 @@ message_cache_t::get_expired_messages(message_queue_t& expired_messages) {
 
 void
 message_cache_t::log_stats() {
+	if (!log_flag_enabled(PLOG_DEBUG)) {
+		return;
+	}
+
 	log(PLOG_DEBUG, "new messages: %d", m_new_messages->size());
 
 	route_sent_messages_map_t::iterator it = m_sent_messages.begin();

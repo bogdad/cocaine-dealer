@@ -75,6 +75,14 @@ public:
 		m_ctx->logger()->log(type, std::string(buff));
 	}
 
+	bool log_flag_enabled(unsigned int type) {
+		if (!(m_ctx->logger())) {
+			return false;
+		}
+
+		return ((m_ctx->logger()->flags() & type) == type);
+	}
+
 	boost::shared_ptr<context_t> context() const {
 		return m_ctx;
 	}

@@ -21,10 +21,11 @@
 #ifndef _COCAINE_DEALER_MESSAGE_POLICY_HPP_INCLUDED_
 #define _COCAINE_DEALER_MESSAGE_POLICY_HPP_INCLUDED_
 
-#include <msgpack.hpp>
-
 #include <string>
 #include <sstream>
+#include <iomanip>
+
+#include <msgpack.hpp>
 
 namespace cocaine {
 namespace dealer {
@@ -84,6 +85,18 @@ struct message_policy_t {
 
     policy_t server_policy() {
         return policy_t(urgent, timeout, deadline);
+    }
+
+    std::string as_string() const {
+        std::stringstream sstream;
+
+        sstream << std::boolalpha << std::fixed << std::setprecision(6);
+        sstream << "urgent: " << urgent << ", ";
+        sstream << "timeout: " << timeout << ", ";
+        sstream << "deadline: " << deadline << ", ";
+        sstream << "max_retries: " << max_retries;
+
+        return sstream.str();
     }
 
     bool send_to_all_hosts;

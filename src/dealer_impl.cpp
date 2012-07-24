@@ -98,18 +98,9 @@ dealer_impl_t::shared_ptr() {
 	return shared_from_this();
 }
 
-boost::shared_ptr<response_t>
-dealer_impl_t::send_message(const void* data,
-							size_t size,
-							const message_path_t& path,
-							const message_policy_t& policy)
-{
-	BOOST_VERIFY(!m_is_dead);
-	
+boost::shared_ptr<service_t>
+dealer_impl_t::get_service(const std::string& service_alias) {
 	const static std::string error_str = "can't sent message. no service with name %s found.";
-
-	boost::mutex::scoped_lock lock(m_mutex);
-	const std::string& service_alias = path.service_alias;
 
 	// find service to send message to
 	services_map_t::iterator it = m_services.find(service_alias);
@@ -129,17 +120,36 @@ dealer_impl_t::send_message(const void* data,
 						   service_alias.c_str());
 	}
 
-	// create message object
-	boost::shared_ptr<message_iface> msg = create_message(data, size, path, policy);
+	return service_ptr;
+}
 
-	// create response object
+boost::shared_ptr<response_t>
+dealer_impl_t::send_message(const void* data,
+							size_t size,
+							const message_path_t& path)
+{
+	boost::shared_ptr<service_t> service = get_service(path.service_alias);
+	return dealer_impl_t::send_message(data, size, path, service->info().policy);
+}
+
+boost::shared_ptr<response_t>
+dealer_impl_t::send_message(const void* data,
+							size_t size,
+							const message_path_t& path,
+							const message_policy_t& policy)
+{
+	BOOST_VERIFY(!m_is_dead);
+	
+	boost::mutex::scoped_lock lock(m_mutex);
+	boost::shared_ptr<service_t> service = get_service(path.service_alias);
+
+	boost::shared_ptr<message_iface> msg = create_message(data, size, path, policy);
 	boost::shared_ptr<response_t> resp(new response_t(shared_ptr(),
 													  msg->uuid(),
 													  path));
 
-	// send message
-	service_ptr->register_responder_callback(msg->uuid(), resp);
-	service_ptr->send_message(msg);
+	service->register_responder_callback(msg->uuid(), resp);
+	service->send_message(msg);
 
 	return resp;
 }
@@ -167,9 +177,31 @@ dealer_impl_t::send_messages(const void* data,
 	return responces_list;
 }
 
+std::vector<boost::shared_ptr<response_t> >
+dealer_impl_t::send_messages(const void* data,
+							 size_t size,
+							 const message_path_t& path)
+{
+	std::vector<boost::shared_ptr<response_t> > responces_list;
+
+	const configuration_t::services_list_t& services_info_list = config()->services_list();
+	configuration_t::services_list_t::const_iterator it = services_info_list.begin();
+	for (; it != services_info_list.end(); ++it) {
+		if (regex_match(path.service_alias, it->second.name)) {
+			message_path_t exact_path = path;
+			exact_path.service_alias = it->second.name; 
+
+			boost::shared_ptr<response_t> resp = send_message(data, size, exact_path);
+			responces_list.push_back(resp);
+		}
+	}
+	
+	return responces_list;
+}
+
 bool
 dealer_impl_t::regex_match(const std::string& regex_str, const std::string& value) {
-	boost::mutex::scoped_lock lock(m_mutex);
+	boost::mutex::scoped_lock lock(m_regex_mutex);
 	
 	std::map<std::string, boost::xpressive::sregex>::iterator it;
 	it = m_regex_cache.find(regex_str);

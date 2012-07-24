@@ -47,6 +47,14 @@ dealer_t::send_message(const void* data,
 	return m_impl->send_message(data, size, path, policy);
 }
 
+boost::shared_ptr<response_t>
+dealer_t::send_message(const void* data,
+                       size_t size,
+                       const message_path_t& path)
+{
+    return m_impl->send_message(data, size, path);
+}
+
 std::vector<boost::shared_ptr<response_t> >
 dealer_t::send_messages(const void* data,
                         size_t size,
@@ -54,6 +62,14 @@ dealer_t::send_messages(const void* data,
                         const message_policy_t& policy)
 {
     return m_impl->send_messages(data, size, path, policy);
+}
+
+std::vector<boost::shared_ptr<response_t> >
+dealer_t::send_messages(const void* data,
+                        size_t size,
+                        const message_path_t& path)
+{
+    return m_impl->send_messages(data, size, path);
 }
 
 } // namespace dealer
