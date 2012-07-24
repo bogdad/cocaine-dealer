@@ -86,6 +86,8 @@ public:
 		return send_message(reinterpret_cast<const void*>(buffer.data()), buffer.size(), path);
 	}
 
+	message_policy_t policy_for_service(const std::string& service_alias);
+	
 private:
 	friend class response_impl_t;
 

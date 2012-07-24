@@ -90,6 +90,8 @@ public:
 				   const message_path_t& path,
 				   const message_policy_t& policy);
 
+	message_policy_t policy_for_service(const std::string& service_alias);
+
 	void detach_response_callback(const std::string& message_uuid,
 								  const message_path_t& path);
 

@@ -72,5 +72,10 @@ dealer_t::send_messages(const void* data,
     return m_impl->send_messages(data, size, path);
 }
 
+message_policy_t
+dealer_t::policy_for_service(const std::string& service_alias) {
+    return m_impl->policy_for_service(service_alias);
+}
+
 } // namespace dealer
 } // namespace cocaine

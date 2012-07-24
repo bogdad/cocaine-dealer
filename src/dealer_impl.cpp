@@ -199,6 +199,20 @@ dealer_impl_t::send_messages(const void* data,
 	return responces_list;
 }
 
+message_policy_t
+dealer_impl_t::policy_for_service(const std::string& service_alias) {
+	boost::shared_ptr<service_t> service;
+
+	try {
+		service = get_service(service_alias);
+	}
+	catch (...) {
+		return message_policy_t();
+	}
+
+	return service->info().policy;
+}
+
 bool
 dealer_impl_t::regex_match(const std::string& regex_str, const std::string& value) {
 	boost::mutex::scoped_lock lock(m_regex_mutex);
