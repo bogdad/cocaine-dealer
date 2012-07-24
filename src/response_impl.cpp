@@ -28,6 +28,7 @@
 #include <cocaine/dealer/core/response_impl.hpp>
 #include <cocaine/dealer/core/dealer_impl.hpp>
 #include <cocaine/dealer/utils/error.hpp>
+#include <cocaine/dealer/utils/progress_timer.hpp>
 
 namespace cocaine {
 namespace dealer {
@@ -75,9 +76,11 @@ response_impl_t::get(data_container* data, double timeout) {
 		}
 		else {
 			boost::system_time t = boost::get_system_time();
-			t += boost::posix_time::milliseconds(timeout);
+			t += boost::posix_time::milliseconds(timeout * 1000);
 
-			while (!m_response_finished) { // handle spurrious wakes
+			progress_timer pt;
+
+			while (!m_response_finished && pt.elapsed().as_double() < timeout) { // handle spurrious wakes
 				m_cond_var.timed_wait(lock, t);
 			}
 		}

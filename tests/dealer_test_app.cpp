@@ -133,6 +133,21 @@ int
 main(int argc, char** argv) {
 	/*
 	dealer_t			d("tests/config.json");
+	message_path_t		path("rimz_app", "rimz_func");
+	std::string			payload = "response chunk: ";
+
+	boost::shared_ptr<response_t> resp = d.send_message(payload.data(), payload.size(), path);
+
+	data_container data;
+	while (resp->get(&data, 0.1)) {
+		std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+	}
+
+	return EXIT_SUCCESS;
+	*/
+
+	/*
+	dealer_t			d("tests/config.json");
 	message_path_t		path("rimz.*", "rimz_func");
 	message_policy_t	policy;
 	std::string			payload = "response chunk: ";
