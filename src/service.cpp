@@ -88,7 +88,6 @@ service_t::send_message(cached_message_prt_t message) {
 
 void
 service_t::enqueue_responce(const cached_response_t& response_chunk) {
-	assert(response);
 
 	{
 		boost::shared_ptr<response_t> response_object;
