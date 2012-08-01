@@ -38,13 +38,13 @@ public:
 
 	virtual ~response_t();
 
-	bool get(data_container* data, double timeout = -1.0);
+	bool get(chunk_data& data, double timeout = -1.0);
 
 private:
 	friend class service_t;
 
-    void add_chunk(const response_data& resp_data,
-                   const response_info& resp_info);
+    void add_chunk(const chunk_data& data,
+                   const chunk_info& info);
 
 	boost::shared_ptr<response_impl_t> m_impl;
 };

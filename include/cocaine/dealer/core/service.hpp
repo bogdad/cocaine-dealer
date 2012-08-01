@@ -126,11 +126,9 @@ private:
 	// responces map <uuid, response_t>
 	std::map<std::string, boost::shared_ptr<response_t> > m_responses;
 
-	boost::mutex				m_responces_mutex;
-	boost::mutex				m_handles_mutex;
-	boost::mutex				m_unhandled_mutex;
-
-	volatile bool m_is_running;
+	boost::mutex m_responces_mutex;
+	boost::mutex m_handles_mutex;
+	boost::mutex m_unhandled_mutex;
 
 	// deadlined messages refresher
 	std::auto_ptr<refresher> m_deadlined_messages_refresher;

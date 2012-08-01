@@ -28,12 +28,8 @@ service_t::service_t(const service_info_t& info,
 					 bool logging_enabled) :
 	dealer_object_t(ctx, logging_enabled),
 	m_info(info),
-	m_is_running(false),
 	m_is_dead(false)
 {
-	// run response_t dispatch thread
-	m_is_running = true;
-
 	// run timed out messages checker
 	m_deadlined_messages_refresher.reset(new refresher(boost::bind(&service_t::check_for_deadlined_messages, this),
 										 deadline_check_interval));
@@ -54,8 +50,6 @@ service_t::~service_t() {
 
 		it->second.reset();
 	}
-
-	m_is_running = false;
 
 	log(PLOG_INFO, "FINISHED SERVICE [%s]", m_info.name.c_str());
 }
@@ -111,6 +105,7 @@ service_t::enqueue_responce(cached_response_prt_t response) {
 
 		// response object has only one ref -> discard chunk
 		if (it->second.unique()) {
+			m_responses.erase(it);
 			return;
 		}
 
@@ -120,17 +115,13 @@ service_t::enqueue_responce(cached_response_prt_t response) {
 	assert(response_object);
 
 	// create simplified response_t
-	response_data data;
-	data.data = response->data().data();
-	data.size = response->data().size();
+	chunk_info c_info;
+	c_info.uuid = response->uuid();
+	c_info.path = response->path();
+	c_info.code = response->code();
+	c_info.error_msg = response->error_message();
 
-	response_info info;
-	info.uuid = response->uuid();
-	info.path = response->path();
-	info.code = response->code();
-	info.error_msg = response->error_message();
-
-	response_object->add_chunk(data, info);
+	response_object->add_chunk(response->data(), c_info);
 
 	// check for unique responses and remove them?
 }

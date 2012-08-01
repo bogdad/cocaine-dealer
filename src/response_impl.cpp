@@ -49,7 +49,7 @@ response_impl_t::~response_impl_t() {
 }
 
 bool
-response_impl_t::get(data_container* data, double timeout) {
+response_impl_t::get(chunk_data& data, double timeout) {
 	boost::mutex::scoped_lock lock(m_mutex);
 
 	// no more chunks?
@@ -83,7 +83,7 @@ response_impl_t::get(data_container* data, double timeout) {
 	}
 	else {
 		if (m_chunks.size() > 0) {
-			*data = m_chunks.at(0);
+			data = m_chunks[0];
 			m_chunks.erase(m_chunks.begin());
 			return true;
 		}
@@ -105,7 +105,7 @@ response_impl_t::get(data_container* data, double timeout) {
 
 	// expecting another chunk
 	if (m_chunks.size() > 0) {
-		*data = m_chunks.at(0);
+		data = m_chunks[0];
 		m_chunks.erase(m_chunks.begin());
 		return true;
 	}
@@ -120,22 +120,22 @@ response_impl_t::get(data_container* data, double timeout) {
 }
 
 void
-response_impl_t::add_chunk(const response_data& resp_data, const response_info& resp_info) {
+response_impl_t::add_chunk(const chunk_data& data, const chunk_info& info) {
 	boost::mutex::scoped_lock lock(m_mutex);
 
 	if (m_message_finished) {
 		return;
 	}
 
-	if (resp_info.code == response_code::message_choke) {
+	if (info.code == response_code::message_choke) {
 		m_message_finished = true;
 	}
-	else if (resp_info.code == response_code::message_chunk) {
-		m_chunks.push_back(new data_container(resp_data.data, resp_data.size));
+	else if (info.code == response_code::message_chunk) {
+		m_chunks.push_back(data);
 	}
 	else {
 		m_caught_error = true;
-		m_resp_info = resp_info; // remember error data
+		m_resp_info = info; // remember error data
 		m_message_finished = true;
 	}
 

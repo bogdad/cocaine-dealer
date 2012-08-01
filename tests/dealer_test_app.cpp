@@ -25,6 +25,7 @@
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/regex.hpp>
+#include <boost/shared_array.hpp>
 
 #include "cocaine/dealer/dealer.hpp"
 #include "cocaine/dealer/utils/progress_timer.hpp"
@@ -53,9 +54,9 @@ void worker(dealer_t* d,
 				resp = d->send_message(payload.data(), payload.size(), path);
 			}
 
-			data_container data;
-			while (resp->get(&data)) {
-				//std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+			chunk_data chunk;
+			while (resp->get(chunk)) {
+				//std::cout << std::string((char*)chunk.data(), 0, chunk.size()) << std::endl;
 			}
 		}
 		catch (const dealer_error& err) {

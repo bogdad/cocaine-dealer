@@ -30,6 +30,7 @@
 #include <msgpack.hpp>
 
 #include <boost/cstdint.hpp>
+#include <boost/shared_array.hpp>
 
 #include <cocaine/dealer/types.hpp>
 #include <cocaine/dealer/message_path.hpp>
@@ -44,18 +45,36 @@ struct response_code {
 	static const int message_choke = 3;
 };
 
-struct response_data {
-	response_data() : data(NULL), size(0) {};
-	void* data;
-	size_t size;
+//response_data
+struct chunk_data {
+	chunk_data() : m_size(0) {}
+	
+    void assign(const void* data, size_t size) {
+        m_data.reset(new char[size]);
+        memcpy(m_data.get(), data, size);
+        m_size = size;
+    }
+
+    void* data() const {
+        return m_data.get();
+    }
+
+    size_t size() const {
+        return m_size;
+    }
+
+private:
+    boost::shared_array<char> m_data;
+	size_t                    m_size;
 };
 
-struct response_info {
-	response_info() : code(0) {};
-	std::string uuid;
+struct chunk_info {
+	chunk_info() : code(0) {}
+
+	std::string    uuid;
 	message_path_t path;
-	int code;
-	std::string error_msg;
+	int            code;
+	std::string    error_msg;
 };
 
 } // namespace dealer
