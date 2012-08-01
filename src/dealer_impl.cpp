@@ -74,7 +74,7 @@ dealer_impl_t::dealer_impl_t(const std::string& config_path) :
 	for (; it != services_info_list.end(); ++it) {
 		boost::shared_ptr<service_t> service_ptr(new service_t(it->second, context()));
 
-		log(PLOG_INFO, "STARTING SERVICE [%s]", it->second.name.c_str());
+		log(PLOG_INFO, "STARTING NEW SERVICE [%s]", it->second.name.c_str());
 
 		if (config()->message_cache_type() == PERSISTENT) {
 			load_cached_messages_for_service(service_ptr);
@@ -91,11 +91,6 @@ dealer_impl_t::~dealer_impl_t() {
 	m_is_dead = true;
 	disconnect();
 	log(PLOG_INFO, "dealer destroyed.");
-}
-
-boost::shared_ptr<dealer_impl_t>
-dealer_impl_t::shared_ptr() {
-	return shared_from_this();
 }
 
 boost::shared_ptr<service_t>
@@ -142,16 +137,9 @@ dealer_impl_t::send_message(const void* data,
 	
 	boost::mutex::scoped_lock lock(m_mutex);
 	boost::shared_ptr<service_t> service = get_service(path.service_alias);
-
 	boost::shared_ptr<message_iface> msg = create_message(data, size, path, policy);
-	boost::shared_ptr<response_t> resp(new response_t(shared_ptr(),
-													  msg->uuid(),
-													  path));
 
-	service->register_responder_callback(msg->uuid(), resp);
-	service->send_message(msg);
-
-	return resp;
+	return service->send_message(msg);
 }
 
 std::vector<boost::shared_ptr<response_t> >
@@ -311,27 +299,6 @@ dealer_impl_t::create_message(const void* data,
 	}
 
 	return msg;
-}
-
-void
-dealer_impl_t::detach_response_callback(const std::string& message_uuid,
-								 		const message_path_t& path)
-{
-	boost::mutex::scoped_lock lock(m_mutex);
-
-	// check for services
-	services_map_t::iterator it = m_services.find(path.service_alias);
-	if (it == m_services.end()) {
-		return;
-	}
-
-	assert(it->second);
-
-	// assign to service
-	it->second->unregister_responder_callback(message_uuid);
-
-	//std::string message_str = "unregistered callback for message with uuid: " + message_uuid;
-	//logger()->log(PLOG_DEBUG, message_str);
 }
 
 void

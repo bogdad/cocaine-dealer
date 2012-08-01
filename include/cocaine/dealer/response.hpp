@@ -34,18 +34,17 @@ namespace dealer {
 
 class response_t {
 public:
-	response_t(const boost::shared_ptr<dealer_impl_t>& dealer,
-             const std::string& uuid, const message_path_t& path);
+	response_t(const std::string& uuid, const message_path_t& path);
 
 	virtual ~response_t();
 
 	bool get(data_container* data, double timeout = -1.0);
 
-	void response_callback(const response_data& resp_data,
-                           const response_info& resp_info);
-
 private:
-	friend class dealer;
+	friend class service_t;
+
+    void add_chunk(const response_data& resp_data,
+                   const response_info& resp_info);
 
 	boost::shared_ptr<response_impl_t> m_impl;
 };

@@ -24,20 +24,16 @@
 #include <string>
 
 #include <boost/utility.hpp>
-#include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
 
-#include <cocaine/dealer/forwards.hpp>
-#include <cocaine/dealer/structs.hpp>
 #include <cocaine/dealer/response.hpp>
+#include <cocaine/dealer/utils/data_container.hpp>
 
 namespace cocaine {
 namespace dealer {
 
 class dealer_t : private boost::noncopyable {
 public:
-	typedef boost::function<void(const response_data&, const response_info&)> response_callback;
 	typedef boost::shared_ptr<response_t> response_ptr_t;
 	typedef std::vector<response_ptr_t> responses_list_t;
 
@@ -89,10 +85,7 @@ public:
 	message_policy_t policy_for_service(const std::string& service_alias);
 	
 private:
-	friend class response_impl_t;
-
-	boost::shared_ptr<dealer_impl_t>	m_impl;
-	mutable boost::mutex				m_mutex;
+	boost::shared_ptr<dealer_impl_t> m_impl;
 };
 
 } // namespace dealer

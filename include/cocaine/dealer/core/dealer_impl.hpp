@@ -44,7 +44,6 @@ namespace dealer {
 
 class dealer_impl_t :
 	private boost::noncopyable,
-	public boost::enable_shared_from_this<dealer_impl_t>,
 	public dealer_object_t
 {
 public:
@@ -91,11 +90,6 @@ public:
 				   const message_policy_t& policy);
 
 	message_policy_t policy_for_service(const std::string& service_alias);
-
-	void detach_response_callback(const std::string& message_uuid,
-								  const message_path_t& path);
-
-	boost::shared_ptr<dealer_impl_t> shared_ptr();
 
 private:	
 	void connect();

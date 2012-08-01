@@ -35,9 +35,8 @@ namespace dealer {
 
 class response_impl_t {
 public:
-	response_impl_t(const boost::shared_ptr<dealer_impl_t>& dealer,
-				  const std::string& uuid,
-				  const message_path_t& path);
+	response_impl_t(const std::string& uuid,
+					const message_path_t& path);
 
 	~response_impl_t();
 
@@ -50,11 +49,10 @@ public:
 private:
 	friend class response_t;
 
-	void response_callback(const response_data& resp_data,
-						   const response_info& resp_info);
+	void add_chunk(const response_data& resp_data,
+				   const response_info& resp_info);
 
 	boost::ptr_vector<data_container>	m_chunks;
-	boost::weak_ptr<dealer_impl_t>		m_dealer;
 	std::string			m_uuid;
 	const message_path_t	m_path;
 	response_info		m_resp_info;

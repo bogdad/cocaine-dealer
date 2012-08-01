@@ -27,6 +27,8 @@ namespace dealer {
 class dealer_t;
 class dealer_impl_t;
 
+class service_t;
+
 class response_t;
 class response_impl_t;
 

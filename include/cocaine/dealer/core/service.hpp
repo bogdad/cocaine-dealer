@@ -64,19 +64,8 @@ public:
 	typedef boost::shared_ptr<cached_response_t> cached_response_prt_t;
 
 	typedef std::deque<cached_message_prt_t> cached_messages_deque_t;
-	typedef std::deque<cached_response_prt_t> cached_responces_deque_t;
-
 	typedef boost::shared_ptr<cached_messages_deque_t> messages_deque_ptr_t;
-	typedef boost::shared_ptr<cached_responces_deque_t> responces_deque_ptr_t;
-
-	// map <handle_name/handle's unprocessed messages deque>
 	typedef std::map<std::string, messages_deque_ptr_t> unhandled_messages_map_t;
-
-	// map <handle_name/handle's responces deque>
-	typedef std::map<std::string, responces_deque_ptr_t> responces_map_t;
-
-	// registered response_t callback 
-	typedef std::map<std::string, boost::weak_ptr<response_t> > registered_callbacks_map_t;
 
 	typedef std::map<std::string, std::vector<cocaine_endpoint_t> > handles_endpoints_t;
 
@@ -89,15 +78,10 @@ public:
 
 	void refresh_handles(const handles_endpoints_t& handles_endpoints);
 
-	void send_message(cached_message_prt_t message);
+	boost::shared_ptr<response_t> send_message(cached_message_prt_t message);
 	bool is_dead();
 
 	service_info_t info() const;
-
-	void register_responder_callback(const std::string& message_uuid,
-									 const boost::shared_ptr<response_t>& response_t);
-
-	void unregister_responder_callback(const std::string& message_uuid);
 
 private:
 	void create_new_handles(const handles_info_list_t& handles_info,
@@ -110,8 +94,6 @@ private:
 	void update_existing_handles(const handles_endpoints_t& handles_endpoints);
 
 	void enqueue_responce(cached_response_prt_t response_t);
-	void dispatch_responces();
-	bool responces_queues_empty() const;
 
 	void check_for_deadlined_messages();
 
@@ -141,19 +123,14 @@ private:
 	// service messages for non-existing handles <handle name, handle ptr>
 	unhandled_messages_map_t m_unhandled_messages;
 
-	// responces map <handle name, responces queue ptr>
-	responces_map_t m_received_responces;
+	// responces map <uuid, response_t>
+	std::map<std::string, boost::shared_ptr<response_t> > m_responses;
 
-	boost::thread				m_thread;
 	boost::mutex				m_responces_mutex;
 	boost::mutex				m_handles_mutex;
 	boost::mutex				m_unhandled_mutex;
-	boost::condition_variable	m_cond_var;
 
 	volatile bool m_is_running;
-
-	// responses callbacks
-	registered_callbacks_map_t m_responses_callbacks_map;
 
 	// deadlined messages refresher
 	std::auto_ptr<refresher> m_deadlined_messages_refresher;

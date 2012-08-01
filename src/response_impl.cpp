@@ -33,27 +33,19 @@
 namespace cocaine {
 namespace dealer {
 
-response_impl_t::response_impl_t(const boost::shared_ptr<dealer_impl_t>& client_ptr, const std::string& uuid, const message_path_t& path) :
-	m_dealer(client_ptr),
+response_impl_t::response_impl_t(const std::string& uuid, const message_path_t& path) :
 	m_uuid(uuid),
 	m_path(path),
 	m_response_finished(false),
 	m_message_finished(false),
 	m_caught_error(false)
-{
-	assert(client_ptr.get() != NULL);
-}
+{}
 
 response_impl_t::~response_impl_t() {
 	boost::mutex::scoped_lock lock(m_mutex);
 	m_message_finished = true;
 	m_response_finished = true;
 	m_chunks.clear();
-
-	boost::shared_ptr<dealer_impl_t> dealer_ptr = m_dealer.lock();
-	if (dealer_ptr) {
-		dealer_ptr->detach_response_callback(m_uuid, m_path);
-	}	
 }
 
 bool
@@ -128,7 +120,7 @@ response_impl_t::get(data_container* data, double timeout) {
 }
 
 void
-response_impl_t::response_callback(const response_data& resp_data, const response_info& resp_info) {
+response_impl_t::add_chunk(const response_data& resp_data, const response_info& resp_info) {
 	boost::mutex::scoped_lock lock(m_mutex);
 
 	if (m_message_finished) {

@@ -33,7 +33,6 @@ service_t::service_t(const service_info_t& info,
 {
 	// run response_t dispatch thread
 	m_is_running = true;
-	m_thread = boost::thread(&service_t::dispatch_responces, this);
 
 	// run timed out messages checker
 	m_deadlined_messages_refresher.reset(new refresher(boost::bind(&service_t::check_for_deadlined_messages, this),
@@ -57,8 +56,6 @@ service_t::~service_t() {
 	}
 
 	m_is_running = false;
-	m_cond_var.notify_one();
-	m_thread.join();
 
 	log(PLOG_INFO, "FINISHED SERVICE [%s]", m_info.name.c_str());
 }
@@ -73,149 +70,69 @@ service_t::info() const {
 	return m_info;
 }
 
-bool
-service_t::responces_queues_empty() const {
-	responces_map_t::const_iterator it = m_received_responces.begin();
-	for (; it != m_received_responces.end(); ++it) {
-		responces_deque_ptr_t handle_resp_queue = it->second;
-		if (!handle_resp_queue->empty()) {
-			return false;
-		}
+boost::shared_ptr<response_t>
+service_t::send_message(cached_message_prt_t message) {
+
+	boost::shared_ptr<response_t> resp;
+	resp.reset(new response_t(message->uuid(), message->path()));
+
+	{
+		boost::mutex::scoped_lock lock(m_responces_mutex);
+		m_responses[message->uuid()] = resp;
 	}
 
-	return true;
+
+	boost::mutex::scoped_lock lock(m_handles_mutex);
+	bool enqued = enque_to_handle(message);
+
+	if (!enqued) {
+		enque_to_unhandled(message);
+	}
+
+	return resp;
 }
 
 void
-service_t::dispatch_responces() {
-	while (m_is_running) {
+service_t::enqueue_responce(cached_response_prt_t response) {
+	assert(response);
+
+	boost::shared_ptr<response_t> response_object;
+
+	{
 		boost::mutex::scoped_lock lock(m_responces_mutex);
 
-		while(responces_queues_empty() && m_is_running) {
-            m_cond_var.wait(lock);
-        }
+		std::map<std::string, boost::shared_ptr<response_t> >::iterator it;
+		it = m_responses.find(response->uuid());
 
-		// go through each response_t queue
-		responces_map_t::iterator qit = m_received_responces.begin();
-		for (; qit != m_received_responces.end(); ++qit) {
-
-			// get first responce from queue
-			responces_deque_ptr_t handle_resp_queue = qit->second;
-
-			if (!handle_resp_queue->empty()) {
-				cached_response_prt_t resp_ptr = handle_resp_queue->front();
-
-				// create simplified response_t
-				response_data resp_data;
-				resp_data.data = resp_ptr->data().data();
-				resp_data.size = resp_ptr->data().size();
-
-				response_info resp_info;
-				resp_info.uuid = resp_ptr->uuid();
-				resp_info.path = resp_ptr->path();
-				resp_info.code = resp_ptr->code();
-				resp_info.error_msg = resp_ptr->error_message();
-
-				// invoke callback for given message uuid
-				bool unlocked = true;
-				try {
-					registered_callbacks_map_t::iterator it = m_responses_callbacks_map.find(resp_info.uuid);
-
-					// call callback it it's there
-					if (it != m_responses_callbacks_map.end()) {
-						boost::weak_ptr<response_t> response_wptr = it->second;
-						boost::shared_ptr<response_t> response_ptr = response_wptr.lock();
-						
-						lock.unlock();
-						unlocked = true;
-						
-						if (!response_ptr) {
-							unregister_responder_callback(resp_ptr->uuid());
-						}
-						else {
-							response_ptr->response_callback(resp_data, resp_info);
-						}
-					}
-				}
-				catch (const std::exception& ex) {
-					log(PLOG_ERROR, "could not process response: %s", ex.what());
-				}
-
-				if (unlocked) {
-					lock.lock();
-				}
-
-				// remove processed response_t
-				handle_resp_queue->pop_front();
-			}
+		// no response object -> discard chunk
+		if (it == m_responses.end()) {
+			return;
 		}
-	}
-}
 
-void
-service_t::register_responder_callback(const std::string& message_uuid,
-											const boost::shared_ptr<response_t>& resp)
-{
-	boost::mutex::scoped_lock lock(m_responces_mutex);
-	boost::weak_ptr<response_t> wptr(resp);
-	m_responses_callbacks_map[message_uuid] = wptr;
-}
-
-void
-service_t::unregister_responder_callback(const std::string& message_uuid) {
-	boost::mutex::scoped_lock lock(m_responces_mutex);
-	registered_callbacks_map_t::iterator callback_it = m_responses_callbacks_map.find(message_uuid);
-
-	// is there a callback for given response_t uuid?
-	if (callback_it == m_responses_callbacks_map.end()) {
-		return;
-	}
-
-	m_responses_callbacks_map.erase(callback_it);
-}
-
-void
-service_t::enqueue_responce(cached_response_prt_t response_t) {
-	// validate response_t
-	assert(response_t);
-
-	const message_path_t& path = response_t->path();
-
-	// see whether there exists registered callback for message
-	boost::mutex::scoped_lock lock(m_responces_mutex);
-	registered_callbacks_map_t::iterator callback_it = m_responses_callbacks_map.find(response_t->uuid());
-
-	// is there a callback for given response_t uuid?
-	if (callback_it == m_responses_callbacks_map.end()) {
-		// drop response
-		return;
-	}
-
-	// get responces queue for response_t handle
-	responces_map_t::iterator it = m_received_responces.find(path.handle_name);
-	responces_deque_ptr_t handle_resp_queue;
-
-	// if no queue for handle's responces exists, create one
-	if (it == m_received_responces.end()) {
-		handle_resp_queue.reset(new cached_responces_deque_t);
-		m_received_responces.insert(std::make_pair(path.handle_name, handle_resp_queue));
-	}
-	else {
-		handle_resp_queue = it->second;
-
-		// validate existing responces queue
-		if (!handle_resp_queue) {
-			std::string error_str = "found empty response_t queue object!";
-			error_str += " service: " + m_info.name + " handle: " + path.handle_name;
-			error_str += " at " + std::string(BOOST_CURRENT_FUNCTION);
-			throw internal_error(error_str);
+		// response object has only one ref -> discard chunk
+		if (it->second.unique()) {
+			return;
 		}
+
+		response_object = it->second;
 	}
 
-	// add responce to queue
-	handle_resp_queue->push_back(response_t);
-	lock.unlock();
-	m_cond_var.notify_one();
+	assert(response_object);
+
+	// create simplified response_t
+	response_data data;
+	data.data = response->data().data();
+	data.size = response->data().size();
+
+	response_info info;
+	info.uuid = response->uuid();
+	info.path = response->path();
+	info.code = response->code();
+	info.error_msg = response->error_message();
+
+	response_object->add_chunk(data, info);
+
+	// check for unique responses and remove them?
 }
 
 bool
@@ -296,17 +213,6 @@ service_t::get_and_remove_unhandled_queue(const std::string& handle_name) {
 }
 
 void
-service_t::send_message(cached_message_prt_t message) {
-	boost::mutex::scoped_lock lock(m_handles_mutex);
-
-	bool enqued = enque_to_handle(message);
-
-	if (!enqued) {
-		enque_to_unhandled(message);
-	}
-}
-
-void
 service_t::destroy_handle(const std::string& handle_name) {
 	boost::mutex::scoped_lock lock(m_handles_mutex);
 
@@ -345,29 +251,6 @@ service_t::destroy_handle(const std::string& handle_name) {
 	lock.unlock();
 
 	log(PLOG_DEBUG, "DESTROY HANDLE [%s] DONE", handle_name.c_str());
-
-	size_t alive_count = 0;
-
-	registered_callbacks_map_t::iterator it2 = m_responses_callbacks_map.begin();
-	for (; it2 != m_responses_callbacks_map.end(); ++it2) {
-		boost::weak_ptr<response_t> wp = it2->second;
-		boost::shared_ptr<response_t> response_ptr = wp.lock();
-
-		if (response_ptr) {
-			++alive_count;
-		}
-	}
-
-	log(PLOG_DEBUG, "callbacks count: %d, alive: %d", m_responses_callbacks_map.size(), alive_count);
-
-	size_t respnces_count = 0;
-
-	responces_map_t::iterator it3 = m_received_responces.begin();
-	for (; it3 != m_received_responces.end(); ++it3) {
-		respnces_count += it3->second->size();
-	}
-
-	log(PLOG_DEBUG, "responces enqued: %d", respnces_count);
 }
 
 void

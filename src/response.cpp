@@ -21,14 +21,13 @@
 #include <stdexcept>
 
 #include "cocaine/dealer/response.hpp"
-#include "cocaine/dealer/core/dealer_impl.hpp"
 #include "cocaine/dealer/core/response_impl.hpp"
 
 namespace cocaine {
 namespace dealer {
 
-response_t::response_t(const boost::shared_ptr<dealer_impl_t>& dealer, const std::string& uuid, const message_path_t& path) {
-	m_impl.reset(new response_impl_t(dealer, uuid, path));
+response_t::response_t(const std::string& uuid, const message_path_t& path) {
+	m_impl.reset(new response_impl_t(uuid, path));
 }
 
 response_t::~response_t() {
@@ -41,8 +40,8 @@ response_t::get(data_container* data, double timeout) {
 }
 
 void
-response_t::response_callback(const response_data& resp_data, const response_info& resp_info) {
-	m_impl->response_callback(resp_data, resp_info);
+response_t::add_chunk(const response_data& resp_data, const response_info& resp_info) {
+	m_impl->add_chunk(resp_data, resp_info);
 }
 
 } // namespace dealer
