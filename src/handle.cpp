@@ -164,41 +164,42 @@ handle_t::dispatch_messages() {
 
 void
 handle_t::dispatch_next_available_response(balancer_t& balancer) {
-	cached_response_prt_t response;
+	cached_response_t response;
+
 	if (!balancer.receive(response)) {
 		return;
 	}
 
 	bool resheduled = false;
 
-	switch (response->code()) {
+	switch (response.code()) {
 		case response_code::message_chunk:
 			enqueue_response(response);
 		break;
 
 		case response_code::message_choke:
 			enqueue_response(response);
-			m_message_cache->remove_message_from_cache(response->route(), response->uuid());			
+			m_message_cache->remove_message_from_cache(response.route(), response.uuid());
 		break;
 
 		case resource_error: {
-			if (m_message_cache->reshedule_message(response->route(), response->uuid())) {
+			if (m_message_cache->reshedule_message(response.route(), response.uuid())) {
 				resheduled = true;
 
-				std::string message_str = "resheduled message with uuid: " + response->uuid();	
+				std::string message_str = "resheduled message with uuid: " + response.uuid();	
 				message_str += " from " + description() + ", reason: error received, code: %d";
-				message_str += ", error message: " + response->error_message();
-				log(PLOG_WARNING, message_str, response->code());
+				message_str += ", error message: " + response.error_message();
+				log(PLOG_WARNING, message_str, response.code());
 			}
 			else {
 				enqueue_response(response);
 
-				std::string message_str = "error received for message with uuid: " + response->uuid();	
+				std::string message_str = "error received for message with uuid: " + response.uuid();
 				message_str += " from " + description() + ", code: %d";
-				message_str += ", error message: " + response->error_message();
-				log(PLOG_ERROR, message_str, response->code());
+				message_str += ", error message: " + response.error_message();
+				log(PLOG_ERROR, message_str, response.code());
 
-				m_message_cache->remove_message_from_cache(response->route(), response->uuid());
+				m_message_cache->remove_message_from_cache(response.route(), response.uuid());
 			}
 		}
 		break;
@@ -206,12 +207,12 @@ handle_t::dispatch_next_available_response(balancer_t& balancer) {
 		default: {
 			enqueue_response(response);
 
-			std::string message_str = "error received for message with uuid: " + response->uuid();	
+			std::string message_str = "error received for message with uuid: " + response.uuid();	
 			message_str += " from " + description() + ", code: %d";
-			message_str += ", error message: " + response->error_message();
-			log(PLOG_ERROR, message_str, response->code());
+			message_str += ", error message: " + response.error_message();
+			log(PLOG_ERROR, message_str, response.code());
 
-			m_message_cache->remove_message_from_cache(response->route(), response->uuid());
+			m_message_cache->remove_message_from_cache(response.route(), response.uuid());
 		}
 		break;
 	}
@@ -285,64 +286,68 @@ handle_t::process_deadlined_messages() {
 				expired_messages.at(i)->increment_retries_count();
 				m_message_cache->enqueue_with_priority(expired_messages.at(i));
 
-				std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
-				std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
-				std::string curr_timestamp_str = time_value::get_current_time().as_string();
+				if (log_flag_enabled(PLOG_WARNING)) {
+					std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
+					std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
+					std::string curr_timestamp_str = time_value::get_current_time().as_string();
 
-				std::string log_str = "no ACK, resheduled message %s, (enqued: %s, sent: %s, curr: %s)";
+					std::string log_str = "no ACK, resheduled message %s, (enqued: %s, sent: %s, curr: %s)";
 
-				log(PLOG_WARNING, log_str,
-					expired_messages.at(i)->uuid().c_str(),
-					enqued_timestamp_str.c_str(),
-					sent_timestamp_str.c_str(),
-					curr_timestamp_str.c_str());
+					log(PLOG_WARNING, log_str,
+						expired_messages.at(i)->uuid().c_str(),
+						enqued_timestamp_str.c_str(),
+						sent_timestamp_str.c_str(),
+						curr_timestamp_str.c_str());
+				}
 			}
 			else {
-				std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
-				std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
-				std::string curr_timestamp_str = time_value::get_current_time().as_string();
+				cached_response_t response(expired_messages.at(i)->uuid(),
+										   "",
+										   expired_messages.at(i)->path(),
+										   request_error,
+										   "server did not reply with ack in time");
 
-				std::string log_str = "reshedule message policy exceeded, did not receive ACK ";
-				log_str += "for %s, (enqued: %s, sent: %s, curr: %s)";
+				enqueue_response(response);
 
-				log(PLOG_WARNING, log_str,
-					expired_messages.at(i)->uuid().c_str(),
-					enqued_timestamp_str.c_str(),
-					sent_timestamp_str.c_str(),
-					curr_timestamp_str.c_str());
+				if (log_flag_enabled(PLOG_WARNING)) {
+					std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
+					std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
+					std::string curr_timestamp_str = time_value::get_current_time().as_string();
 
-				cached_response_prt_t new_response;
-				new_response.reset(new cached_response_t(expired_messages.at(i)->uuid(),
-														 "",
-														 expired_messages.at(i)->path(),
-														 request_error,
-														 "server did not reply with ack in time"));
+					std::string log_str = "reshedule message policy exceeded, did not receive ACK ";
+					log_str += "for %s, (enqued: %s, sent: %s, curr: %s)";
 
-				enqueue_response(new_response);
+					log(PLOG_WARNING, log_str,
+						expired_messages.at(i)->uuid().c_str(),
+						enqued_timestamp_str.c_str(),
+						sent_timestamp_str.c_str(),
+						curr_timestamp_str.c_str());
+				}
 			}
 		}
 		else {
-			cached_response_prt_t new_response;
-			new_response.reset(new cached_response_t(expired_messages.at(i)->uuid(),
-													 "",
-													 expired_messages.at(i)->path(),
-													 deadline_error,
-													 "message expired in service's handle"));
+			cached_response_t response(expired_messages.at(i)->uuid(),
+									   "",
+									   expired_messages.at(i)->path(),
+									   deadline_error,
+									   "message expired in service's handle");
 
-			std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
-			std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
-			std::string curr_timestamp_str = time_value::get_current_time().as_string();
+			enqueue_response(response);
 
-			std::string log_str = "deadline policy exceeded, for message %s, (enqued: %s, sent: %s, curr: %s)";
+			if (log_flag_enabled(PLOG_ERROR)) {
+				std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
+				std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
+				std::string curr_timestamp_str = time_value::get_current_time().as_string();
 
-			log(PLOG_ERROR,
-				log_str,
-				expired_messages.at(i)->uuid().c_str(),
-				enqued_timestamp_str.c_str(),
-				sent_timestamp_str.c_str(),
-				curr_timestamp_str.c_str());
+				std::string log_str = "deadline policy exceeded, for message %s, (enqued: %s, sent: %s, curr: %s)";
 
-			enqueue_response(new_response);
+				log(PLOG_ERROR,
+					log_str,
+					expired_messages.at(i)->uuid().c_str(),
+					enqued_timestamp_str.c_str(),
+					sent_timestamp_str.c_str(),
+					curr_timestamp_str.c_str());
+			}
 		}
 	}
 }
@@ -362,9 +367,9 @@ handle_t::establish_control_conection(socket_ptr_t& control_socket) {
 }
 
 void
-handle_t::enqueue_response(cached_response_prt_t response_t) {
+handle_t::enqueue_response(cached_response_t& response) {
 	if (m_response_callback && m_is_running) {
-		m_response_callback(response_t);
+		m_response_callback(response);
 	}
 }
 

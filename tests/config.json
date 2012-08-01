@@ -21,9 +21,9 @@
 			},
 			"policy" : {
 				"urgent" : 0,
-				"deadline" : 5.0,
-				"timeout" : 3.000,
-				"max_retries" : 13
+				"deadline" : 0.0,
+				"timeout" : 0.0,
+				"max_retries" : -1
 			}
 			//"batching_size" : 100,
 			//"ack_timeout" : 100

@@ -276,7 +276,7 @@ balancer_t::check_for_responses(int poll_timeout) const {
 }
 
 bool
-balancer_t::receive(boost::shared_ptr<cached_response_t>& response) {
+balancer_t::receive(cached_response_t& response) {
 	boost::ptr_vector<zmq::message_t> response_chunks;
 
 	// receive message
@@ -306,7 +306,7 @@ balancer_t::receive(boost::shared_ptr<cached_response_t>& response) {
 
 bool
 balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
-							 boost::shared_ptr<cached_response_t>& response)
+							 cached_response_t& response)
 {
 	// unpack node identity
 	const char* route_chars = reinterpret_cast<const char*>(chunks[0].data());
@@ -357,13 +357,13 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 				log(PLOG_DEBUG, message_str + "CHUNK" + timestamp_str);
 			}
 
-			response.reset(new cached_response_t(uuid,
-												route,
-												sent_msg->path(),
-												chunks[3].data(),
-												chunks[3].size()));
+			response = cached_response_t(uuid,
+										 route,
+										 sent_msg->path(),
+										 chunks[3].data(),
+										 chunks[3].size());
 
-			response->set_code(response_code::message_chunk);
+			response.set_code(response_code::message_chunk);
 			return true;
 		}
 		break;
@@ -382,11 +382,11 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 			obj = msg.get();
 		    obj.convert(&error_message);
 
-			response.reset(new cached_response_t(uuid,
-												 route,
-												 sent_msg->path(),
-												 error_code,
-												 error_message));
+			response = cached_response_t(uuid,
+										 route,
+										 sent_msg->path(),
+										 error_code,
+										 error_message);
 			
 			/*
 			if (log_flag_enabled(PLOG_ERROR)) {
@@ -403,13 +403,13 @@ balancer_t::process_responce(boost::ptr_vector<zmq::message_t>& chunks,
 				log(PLOG_DEBUG, message_str + "CHOKE" + timestamp_str);
 			}
 
-			response.reset(new cached_response_t(uuid,
-												 route,
-												 sent_msg->path(),
-												 NULL,
-												 0));
+			response = cached_response_t(uuid,
+										 route,
+										 sent_msg->path(),
+										 NULL,
+										 0);
 
-			response->set_code(response_code::message_choke);
+			response.set_code(response_code::message_choke);
 			return true;
 		}
 		break;

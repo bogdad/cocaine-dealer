@@ -62,8 +62,7 @@ public:
 	typedef std::vector<cocaine_endpoint_t> endpoints_list_t;
 	typedef boost::shared_ptr<zmq::socket_t> socket_ptr_t;
 
-	typedef boost::shared_ptr<cached_response_t> cached_response_prt_t;
-	typedef boost::function<void(cached_response_prt_t)> responce_callback_t;
+	typedef boost::function<void(const cached_response_t&)> responce_callback_t;
 
 public:
 	handle_t(const handle_info_t& info,
@@ -107,7 +106,7 @@ private:
 	void process_deadlined_messages();
 
 	// working with responces
-	void enqueue_response(cached_response_prt_t response_t);
+	void enqueue_response(cached_response_t& response_t);
 
 private:
 	handle_info_t m_info;

@@ -61,7 +61,6 @@ public:
 	typedef std::map<std::string, handle_ptr_t> handles_map_t;
 
 	typedef boost::shared_ptr<message_iface> cached_message_prt_t;
-	typedef boost::shared_ptr<cached_response_t> cached_response_prt_t;
 
 	typedef std::deque<cached_message_prt_t> cached_messages_deque_t;
 	typedef boost::shared_ptr<cached_messages_deque_t> messages_deque_ptr_t;
@@ -93,7 +92,7 @@ private:
 	void remove_outstanding_handles(const handles_info_list_t& handles_info);
 	void update_existing_handles(const handles_endpoints_t& handles_endpoints);
 
-	void enqueue_responce(cached_response_prt_t response_t);
+	void enqueue_responce(const cached_response_t& response_chunk);
 
 	void check_for_deadlined_messages();
 

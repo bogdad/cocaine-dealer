@@ -87,43 +87,58 @@ service_t::send_message(cached_message_prt_t message) {
 }
 
 void
-service_t::enqueue_responce(cached_response_prt_t response) {
+service_t::enqueue_responce(const cached_response_t& response_chunk) {
 	assert(response);
 
-	boost::shared_ptr<response_t> response_object;
+	{
+		boost::shared_ptr<response_t> response_object;
+
+		{
+			boost::mutex::scoped_lock lock(m_responces_mutex);
+
+			std::map<std::string, boost::shared_ptr<response_t> >::iterator it;
+			it = m_responses.find(response_chunk.uuid());
+
+			// no response object -> discard chunk
+			if (it == m_responses.end()) {
+				return;
+			}
+
+			// response object has only one ref -> discard chunk
+			if (it->second.unique()) {
+				m_responses.erase(it);
+				return;
+			}
+
+			response_object = it->second;
+		}
+
+		assert(response_object);
+
+		// create simplified response_t
+		chunk_info c_info;
+		c_info.uuid = response_chunk.uuid();
+		c_info.path = response_chunk.path();
+		c_info.code = response_chunk.code();
+		c_info.error_msg = response_chunk.error_message();
+
+		response_object->add_chunk(response_chunk.data(), c_info);
+	}
 
 	{
 		boost::mutex::scoped_lock lock(m_responces_mutex);
 
-		std::map<std::string, boost::shared_ptr<response_t> >::iterator it;
-		it = m_responses.find(response->uuid());
-
-		// no response object -> discard chunk
-		if (it == m_responses.end()) {
-			return;
+		// check for unique responses and remove them
+		std::map<std::string, boost::shared_ptr<response_t> >::iterator it = m_responses.begin();
+		while (it != m_responses.end()) {
+			if (it->second.unique()) {
+				m_responses.erase(it++);
+			}
+			else {
+				++it;
+			}
 		}
-
-		// response object has only one ref -> discard chunk
-		if (it->second.unique()) {
-			m_responses.erase(it);
-			return;
-		}
-
-		response_object = it->second;
 	}
-
-	assert(response_object);
-
-	// create simplified response_t
-	chunk_info c_info;
-	c_info.uuid = response->uuid();
-	c_info.path = response->path();
-	c_info.code = response->code();
-	c_info.error_msg = response->error_message();
-
-	response_object->add_chunk(response->data(), c_info);
-
-	// check for unique responses and remove them?
 }
 
 bool
@@ -454,18 +469,17 @@ service_t::check_for_deadlined_messages() {
 		cached_messages_deque_t::iterator expired_qit = expired_queue->begin();
 
 		for (;expired_qit != expired_queue->end(); ++expired_qit) {
-			cached_response_prt_t response_t;
-			response_t.reset(new cached_response_t((*expired_qit)->uuid(),
-												 "",
-												 (*expired_qit)->path(),
-												 deadline_error,
-												 "message expired"));
-
-			std::string enqued_timestamp_str = (*expired_qit)->enqued_timestamp().as_string();
-			std::string sent_timestamp_str = (*expired_qit)->sent_timestamp().as_string();
-			std::string curr_timestamp_str = time_value::get_current_time().as_string();
+			cached_response_t response((*expired_qit)->uuid(),
+									   "",
+									   (*expired_qit)->path(),
+									   deadline_error,
+									   "message expired");
 
 			if (log_flag_enabled(PLOG_ERROR)) {
+				std::string enqued_timestamp_str = (*expired_qit)->enqued_timestamp().as_string();
+				std::string sent_timestamp_str = (*expired_qit)->sent_timestamp().as_string();
+				std::string curr_timestamp_str = time_value::get_current_time().as_string();
+
 				std::string log_str = "deadline policy exceeded, for unhandled message %s, (enqued: %s, sent: %s, curr: %s)";
 
 				log(PLOG_ERROR,
@@ -476,7 +490,7 @@ service_t::check_for_deadlined_messages() {
 					curr_timestamp_str.c_str());
 			}
 
-			enqueue_responce(response_t);
+			enqueue_responce(response);
 		}
 	}
 }
