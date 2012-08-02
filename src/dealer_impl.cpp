@@ -25,8 +25,11 @@
 #include "cocaine/dealer/core/cached_message.hpp"
 #include "cocaine/dealer/core/request_metadata.hpp"
 #include "cocaine/dealer/core/persistent_data_container.hpp"
+
 #include "cocaine/dealer/utils/data_container.hpp"
 #include "cocaine/dealer/utils/error.hpp"
+#include "cocaine/dealer/utils/filesystem.hpp"
+
 #include "cocaine/dealer/heartbeats/heartbeats_collector.hpp"
 #include "cocaine/dealer/heartbeats/http_hosts_fetcher.hpp"
 #include "cocaine/dealer/heartbeats/file_hosts_fetcher.hpp"
@@ -46,18 +49,12 @@ dealer_impl_t::dealer_impl_t(const std::string& config_path) :
 	m_is_dead(false)
 {
 	// create dealer context
-	std::string ctx_error_msg = "could not create dealer context at: " + std::string(BOOST_CURRENT_FUNCTION) + " ";
-
-	char* absolute_config_path;
-	std::string config_path_tmp = config_path;
-
-	absolute_config_path = realpath(config_path_tmp.c_str(), NULL);
-    if (NULL != absolute_config_path) {
-    	config_path_tmp = absolute_config_path;
-    }
+	std::string ctx_error_msg = "could not create dealer context. details: ";
 
 	try {
-		boost::shared_ptr<cocaine::dealer::context_t> ctx(new cocaine::dealer::context_t(config_path_tmp.c_str()));
+		std::string config_path_abs = absolute_path(config_path);
+		boost::shared_ptr<context_t> ctx;
+		ctx.reset(new context_t(config_path_abs.c_str()));
 		set_context(ctx);
 	}
 	catch (const std::exception& ex) {

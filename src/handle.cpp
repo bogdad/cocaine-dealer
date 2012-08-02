@@ -38,8 +38,7 @@ handle_t::handle_t(const handle_info_t& info,
 	m_info(info),
 	m_endpoints(endpoints),
 	m_is_running(false),
-	m_is_connected(false),
-	m_receiving_control_socket_ok(false)
+	m_is_connected(false)
 {
 	log(PLOG_DEBUG, "CREATED HANDLE " + description());
 
@@ -362,7 +361,6 @@ handle_t::establish_control_conection(socket_ptr_t& control_socket) {
 		int timeout = 0;
 		control_socket->setsockopt(ZMQ_LINGER, &timeout, sizeof(timeout));
 		control_socket->connect(conn_str.c_str());
-		m_receiving_control_socket_ok = true;
 	}
 }
 

@@ -109,23 +109,22 @@ private:
 	void enqueue_response(cached_response_t& response_t);
 
 private:
-	handle_info_t m_info;
-	endpoints_list_t m_endpoints;
-	boost::shared_ptr<message_cache_t> m_message_cache;
+	boost::shared_ptr<message_cache_t>	m_message_cache;
+	std::auto_ptr<zmq::socket_t>		m_zmq_control_socket;
 
-	boost::thread m_thread;
-	boost::mutex m_mutex;
-	volatile bool m_is_running;
-	volatile bool m_is_connected;
+	handle_info_t		m_info;
+	endpoints_list_t	m_endpoints;
 
-	std::auto_ptr<zmq::socket_t> m_zmq_control_socket;
-	bool m_receiving_control_socket_ok;
+	boost::thread		m_thread;
+	boost::mutex		m_mutex;
+	volatile bool		m_is_running;
+	volatile bool		m_is_connected;
 
 	responce_callback_t m_response_callback;
 
-	progress_timer m_last_response_timer;
-	progress_timer m_deadlined_messages_timer;
-	progress_timer m_control_messages_timer;
+	progress_timer		m_last_response_timer;
+	progress_timer		m_deadlined_messages_timer;
+	progress_timer		m_control_messages_timer;
 };
 
 } // namespace dealer

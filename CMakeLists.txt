@@ -94,6 +94,7 @@ ADD_EXECUTABLE(overseer
     src/cocaine_node_app_info.cpp
     src/cocaine_node_task_info.cpp
     src/progress_timer.cpp
+    src/filesystem.cpp
     src/time_value.cpp)
 
 TARGET_LINK_LIBRARIES(overseer

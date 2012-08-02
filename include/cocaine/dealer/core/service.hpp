@@ -135,6 +135,8 @@ private:
 	static const int deadline_check_interval = 1000; // millisecs
 
 	bool m_is_dead;
+
+	progress_timer m_gc_timer;
 };
 
 } // namespace dealer

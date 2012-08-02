@@ -124,19 +124,23 @@ service_t::enqueue_responce(const cached_response_t& response_chunk) {
 		response_object->add_chunk(response_chunk.data(), c_info);
 	}
 
-	{
-		boost::mutex::scoped_lock lock(m_responces_mutex);
+	if (m_gc_timer.elapsed().as_double() > 60.0f) {
+		std::map<std::string, boost::shared_ptr<response_t> >::iterator it;
 
-		// check for unique responses and remove them
-		std::map<std::string, boost::shared_ptr<response_t> >::iterator it = m_responses.begin();
+		boost::mutex::scoped_lock lock(m_responces_mutex);
+		it = m_responses.begin();
+
 		while (it != m_responses.end()) {
 			if (it->second.unique()) {
+				it->second.reset();
 				m_responses.erase(it++);
 			}
 			else {
 				++it;
 			}
 		}
+
+		m_gc_timer.reset();
 	}
 }
 

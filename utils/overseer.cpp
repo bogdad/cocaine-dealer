@@ -276,18 +276,12 @@ overseer::fetch_application_info(const std::string& hosts_file,
 								 const std::string& application_name,
 								 int timeout)
 {
-	// prepare hosts path
-	char* absolute_hosts_file = realpath(hosts_file.c_str(), NULL);
-	std::string hosts_file_tmp = hosts_file;
-
-	if (NULL != absolute_hosts_file) {
-		hosts_file_tmp = absolute_hosts_file;
-	}
+	std::string hosts_file_abs = absolute_path(hosts_file);
 
 	file_hosts_fetcher_t hosts_fetcher;
 	inetv4_endpoints_t endpoints;
 
-	hosts_fetcher.get_hosts(endpoints, hosts_file_tmp.c_str());
+	hosts_fetcher.get_hosts(endpoints, hosts_file_abs.c_str());
 	fetch_apps_info(endpoints, timeout);
 	parce_responces(application_name);
 }
