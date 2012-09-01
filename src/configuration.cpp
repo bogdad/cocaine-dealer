@@ -27,12 +27,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include "cocaine/dealer/core/configuration.hpp"
 #include "cocaine/dealer/utils/smart_logger.hpp"
-#include "cocaine/dealer/utils/filesystem.hpp"
-
-#include "cocaine/dealer/structs.hpp"
-#include "cocaine/dealer/core/configuration.hpp"    
-
 
 namespace cocaine {
 namespace dealer {
@@ -264,7 +260,10 @@ configuration_t::parse_services_settings(const Json::Value& config_value) {
 			throw internal_error(error_str);
 		}
 
-		si.hosts_source = absolute_path(si.hosts_source);
+		char* absolute_source_path = realpath(si.hosts_source.c_str(), NULL);
+		if (NULL != absolute_source_path) {
+    		si.hosts_source = absolute_source_path;
+    	}
 
 		std::string autodiscovery_type_str = autodiscovery.get("type", "").asString();
 

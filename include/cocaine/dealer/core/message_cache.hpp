@@ -31,7 +31,6 @@
 
 #include <eblob/eblob.hpp>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/defaults.hpp"
 #include "cocaine/dealer/core/context.hpp"
 #include "cocaine/dealer/core/dealer_object.hpp"

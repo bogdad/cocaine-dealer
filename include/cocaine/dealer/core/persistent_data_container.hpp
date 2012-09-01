@@ -29,7 +29,6 @@
 #include <boost/detail/atomic_count.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/utils/data_container.hpp"
 #include "cocaine/dealer/storage/eblob.hpp"
 

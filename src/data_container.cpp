@@ -145,6 +145,7 @@ data_container::release() {
 
 	if (data_ && *ref_counter_ == 0) {
 		delete [] data_;
+		data_ = NULL;
 		memset(&signature_, 0, SHA1_SIZE);
 	}
 }

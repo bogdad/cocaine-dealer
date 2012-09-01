@@ -35,13 +35,13 @@ response_t::~response_t() {
 }
 
 bool
-response_t::get(chunk_data& data, double timeout) {
+response_t::get(data_container* data, double timeout) {
 	return m_impl->get(data, timeout);
 }
 
 void
-response_t::add_chunk(const chunk_data& data, const chunk_info& info) {
-	m_impl->add_chunk(data, info);
+response_t::add_chunk(const boost::shared_ptr<response_chunk_t>& chunk) {
+	m_impl->add_chunk(chunk);
 }
 
 } // namespace dealer

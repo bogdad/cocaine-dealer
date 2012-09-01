@@ -27,7 +27,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/message_path.hpp"
 #include "cocaine/dealer/utils/time_value.hpp"
 #include "cocaine/dealer/storage/eblob.hpp"

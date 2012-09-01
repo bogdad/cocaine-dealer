@@ -38,7 +38,8 @@ handle_t::handle_t(const handle_info_t& info,
 	m_info(info),
 	m_endpoints(endpoints),
 	m_is_running(false),
-	m_is_connected(false)
+	m_is_connected(false),
+	m_receiving_control_socket_ok(false)
 {
 	log(PLOG_DEBUG, "CREATED HANDLE " + description());
 
@@ -84,7 +85,7 @@ handle_t::kill() {
 void
 handle_t::dispatch_messages() {	
 	std::string balancer_ident = m_info.as_string() + "." + wuuid_t().generate();
-	balancer_t balancer(balancer_ident, m_endpoints, m_message_cache, context());
+	balancer_t balancer(balancer_ident, m_endpoints, context());
 
 	socket_ptr_t control_socket;
 	establish_control_conection(control_socket);
@@ -128,8 +129,8 @@ handle_t::dispatch_messages() {
 		// check for message responces
 		bool received_response = false;
 
-		int fast_poll_timeout = 0;		  // microsecs
-		int long_poll_timeout = 100000;   // microsecs
+		int fast_poll_timeout = 30;		  // microsecs
+		int long_poll_timeout = 300000;   // microsecs
 
 		int response_poll_timeout = fast_poll_timeout;
 		if (m_last_response_timer.elapsed().as_double() > 5.0f) {
@@ -163,55 +164,71 @@ handle_t::dispatch_messages() {
 
 void
 handle_t::dispatch_next_available_response(balancer_t& balancer) {
-	cached_response_t response;
+	boost::shared_ptr<response_chunk_t> response;
 
 	if (!balancer.receive(response)) {
 		return;
 	}
 
 	bool resheduled = false;
+	boost::shared_ptr<message_iface> sent_msg;
 
-	switch (response.code()) {
-		case response_code::message_chunk:
+	switch (response->rpc_code) {
+		case SERVER_RPC_MESSAGE_ACK:		
+			if (m_message_cache->get_sent_message(response->route, response->uuid, sent_msg)) {
+				sent_msg->set_ack_received(true);
+			}
+		break;
+
+		case SERVER_RPC_MESSAGE_CHUNK:
 			enqueue_response(response);
 		break;
 
-		case response_code::message_choke:
+		case SERVER_RPC_MESSAGE_CHOKE:
 			enqueue_response(response);
-			m_message_cache->remove_message_from_cache(response.route(), response.uuid());
+			m_message_cache->remove_message_from_cache(response->route, response->uuid);
 		break;
+		
+		case SERVER_RPC_MESSAGE_ERROR: {
+			if (response->error_code != resource_error) {
+				break;
+			}
 
-		case resource_error: {
-			if (m_message_cache->reshedule_message(response.route(), response.uuid())) {
+			// handle resource error
+			if (m_message_cache->reshedule_message(response->route, response->uuid)) {
 				resheduled = true;
 
-				std::string message_str = "resheduled message with uuid: " + response.uuid();	
-				message_str += " from " + description() + ", reason: error received, code: %d";
-				message_str += ", error message: " + response.error_message();
-				log(PLOG_WARNING, message_str, response.code());
+				if (log_flag_enabled(PLOG_WARNING)) {
+					std::string message_str = "resheduled message with uuid: " + response->uuid;
+					message_str += " from " + description() + ", reason: error received, error code: %d";
+					message_str += ", error message: " + response->error_message;
+					log(PLOG_WARNING, message_str, response->error_code);
+				}
 			}
 			else {
 				enqueue_response(response);
+				m_message_cache->remove_message_from_cache(response->route, response->uuid);
 
-				std::string message_str = "error received for message with uuid: " + response.uuid();
-				message_str += " from " + description() + ", code: %d";
-				message_str += ", error message: " + response.error_message();
-				log(PLOG_ERROR, message_str, response.code());
-
-				m_message_cache->remove_message_from_cache(response.route(), response.uuid());
+				if (log_flag_enabled(PLOG_ERROR)) {
+					std::string message_str = "error received for message with uuid: " + response->uuid;	
+					message_str += " from " + description() + ", error code: %d";
+					message_str += ", error message: " + response->error_message;
+					log(PLOG_ERROR, message_str, response->error_code);
+				}
 			}
 		}
 		break;
 
 		default: {
 			enqueue_response(response);
+			m_message_cache->remove_message_from_cache(response->route, response->uuid);
 
-			std::string message_str = "error received for message with uuid: " + response.uuid();	
-			message_str += " from " + description() + ", code: %d";
-			message_str += ", error message: " + response.error_message();
-			log(PLOG_ERROR, message_str, response.code());
-
-			m_message_cache->remove_message_from_cache(response.route(), response.uuid());
+			if (log_flag_enabled(PLOG_ERROR)) {
+				std::string message_str = "error received for message with uuid: " + response->uuid;
+				message_str += " from " + description() + ", code: %d";
+				message_str += ", error message: " + response->error_message;
+				log(PLOG_ERROR, message_str, response->error_code);
+			}
 		}
 		break;
 	}
@@ -279,17 +296,23 @@ handle_t::process_deadlined_messages() {
 		return;
 	}
 
+	std::string enqued_timestamp_str;
+	std::string sent_timestamp_str;
+	std::string curr_timestamp_str;
+
 	for (size_t i = 0; i < expired_messages.size(); ++i) {
+		if (log_flag_enabled(PLOG_WARNING) || log_flag_enabled(PLOG_ERROR)) {
+			enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
+			sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
+			curr_timestamp_str = time_value::get_current_time().as_string();
+		}
+
 		if (!expired_messages.at(i)->ack_received()) {
 			if (expired_messages.at(i)->can_retry()) {
 				expired_messages.at(i)->increment_retries_count();
 				m_message_cache->enqueue_with_priority(expired_messages.at(i));
 
 				if (log_flag_enabled(PLOG_WARNING)) {
-					std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
-					std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
-					std::string curr_timestamp_str = time_value::get_current_time().as_string();
-
 					std::string log_str = "no ACK, resheduled message %s, (enqued: %s, sent: %s, curr: %s)";
 
 					log(PLOG_WARNING, log_str,
@@ -300,19 +323,14 @@ handle_t::process_deadlined_messages() {
 				}
 			}
 			else {
-				cached_response_t response(expired_messages.at(i)->uuid(),
-										   "",
-										   expired_messages.at(i)->path(),
-										   request_error,
-										   "server did not reply with ack in time");
-
+				boost::shared_ptr<response_chunk_t> response(new response_chunk_t);
+				response->uuid = expired_messages.at(i)->uuid();
+				response->rpc_code = SERVER_RPC_MESSAGE_ERROR;
+				response->error_code = request_error;
+				response->error_message = "server did not reply with ack in time";
 				enqueue_response(response);
 
 				if (log_flag_enabled(PLOG_WARNING)) {
-					std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
-					std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
-					std::string curr_timestamp_str = time_value::get_current_time().as_string();
-
 					std::string log_str = "reshedule message policy exceeded, did not receive ACK ";
 					log_str += "for %s, (enqued: %s, sent: %s, curr: %s)";
 
@@ -325,19 +343,14 @@ handle_t::process_deadlined_messages() {
 			}
 		}
 		else {
-			cached_response_t response(expired_messages.at(i)->uuid(),
-									   "",
-									   expired_messages.at(i)->path(),
-									   deadline_error,
-									   "message expired in service's handle");
-
+			boost::shared_ptr<response_chunk_t> response(new response_chunk_t);
+			response->uuid = expired_messages.at(i)->uuid();
+			response->rpc_code = SERVER_RPC_MESSAGE_ERROR;
+			response->error_code = deadline_error;
+			response->error_message = "message expired in service's handle";
 			enqueue_response(response);
 
 			if (log_flag_enabled(PLOG_ERROR)) {
-				std::string enqued_timestamp_str = expired_messages.at(i)->enqued_timestamp().as_string();
-				std::string sent_timestamp_str = expired_messages.at(i)->sent_timestamp().as_string();
-				std::string curr_timestamp_str = time_value::get_current_time().as_string();
-
 				std::string log_str = "deadline policy exceeded, for message %s, (enqued: %s, sent: %s, curr: %s)";
 
 				log(PLOG_ERROR,
@@ -361,11 +374,12 @@ handle_t::establish_control_conection(socket_ptr_t& control_socket) {
 		int timeout = 0;
 		control_socket->setsockopt(ZMQ_LINGER, &timeout, sizeof(timeout));
 		control_socket->connect(conn_str.c_str());
+		m_receiving_control_socket_ok = true;
 	}
 }
 
 void
-handle_t::enqueue_response(cached_response_t& response) {
+handle_t::enqueue_response(boost::shared_ptr<response_chunk_t>& response) {
 	if (m_response_callback && m_is_running) {
 		m_response_callback(response);
 	}
@@ -436,15 +450,17 @@ handle_t::dispatch_next_available_message(balancer_t& balancer) {
 		new_msg->mark_as_sent(true);
 		m_message_cache->move_new_message_to_sent(endpoint.route);
 
-		std::string log_msg = "sent msg with uuid: %s to endpoint: %s with route: %s (%s)";
-		std::string sent_timestamp_str = new_msg->sent_timestamp().as_string();
+		if (log_flag_enabled(PLOG_DEBUG)) {
+			std::string log_msg = "sent msg with uuid: %s to endpoint: %s with route: %s (%s)";
+			std::string sent_timestamp_str = new_msg->sent_timestamp().as_string();
 
-		log(PLOG_DEBUG,
-			log_msg.c_str(),
-			new_msg->uuid().c_str(),
-			endpoint.endpoint.c_str(),
-			description().c_str(),
-			sent_timestamp_str.c_str());
+			log(PLOG_DEBUG,
+				log_msg.c_str(),
+				new_msg->uuid().c_str(),
+				endpoint.endpoint.c_str(),
+				description().c_str(),
+				sent_timestamp_str.c_str());
+		}
 
 		return true;
 	}

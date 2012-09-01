@@ -23,6 +23,7 @@
 
 #include <cocaine/dealer/utils/error/basic_error.hpp>
 #include <cocaine/dealer/types.hpp>
+#include <iostream>
 
 namespace cocaine {
 namespace dealer {
@@ -33,6 +34,8 @@ public:
 		basic_error(),
 		code_(code)
 	{
+		std::cout << "code: " << code << ", format: " << format << std::endl;
+
 		va_list args;
 		va_start(args, format);
 		vsnprintf(message_, ERROR_MESSAGE_SIZE, format.c_str(), args);

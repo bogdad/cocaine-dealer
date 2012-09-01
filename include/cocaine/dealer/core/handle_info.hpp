@@ -26,8 +26,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "cocaine/dealer/structs.hpp"
-
 namespace cocaine {
 namespace dealer {
 

@@ -27,6 +27,8 @@
 
 #include <msgpack.hpp>
 
+#include <cocaine/dealer/types.hpp>
+    
 namespace cocaine {
 namespace dealer {
 

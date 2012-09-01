@@ -28,81 +28,39 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <zmq.hpp>
+
 #include <cocaine/dealer/utils/error.hpp>
 
 namespace cocaine {
 namespace dealer {
-namespace nutils {
 
-static int str_to_ipv4(const std::string& str) {
-    int addr;
-    int res = inet_pton(AF_INET, str.c_str(), &addr);
+class nutils {
+public:
+    static int         str_to_ipv4(const std::string& str);
+    static std::string ipv4_to_str(int ip);
+    static std::string hostname_for_ipv4(const std::string& ip);
+    static std::string hostname_for_ipv4(int ip);
+    static int         ipv4_from_hint(const std::string& hint);
 
-    if (0 == res) {
-		throw internal_error(std::string("bad ip address: ") + str);
+    static bool recv_zmq_message(zmq::socket_t& sock, zmq::message_t& msg, std::string& str, int flags = ZMQ_NOBLOCK);
+    static bool recv_zmq_message(zmq::socket_t& sock, zmq::message_t& msg, msgpack::object& obj, int flags = ZMQ_NOBLOCK);
+
+    template <typename T>
+    static bool recv_zmq_message(zmq::socket_t& sock,
+                                 zmq::message_t& msg,
+                                 T& object,
+                                 int flags = ZMQ_NOBLOCK)
+    {
+        if (!sock.recv(&msg, flags)) {
+            return false;
+        }
+
+        memcpy(&object, msg.data(), msg.size());
+        return true;
     }
-    else if (res < 0) {
-		throw internal_error("bad address translation");
-    }
+};
 
-    return htonl(addr);
-}
-
-static std::string ipv4_to_str(int ip) {
-	char buf[128];
-    int addr = ntohl(ip);
-    return inet_ntop(AF_INET, &addr, buf, sizeof(buf));
-}
-
-static std::string hostname_for_ipv4(const std::string& ip) {
-	in_addr_t data = inet_addr(ip.c_str());
-	const hostent* host_info = gethostbyaddr(&data, 4, AF_INET);
-
-	if (host_info) {
-		return std::string(host_info->h_name);
-	}
-
-	return "";
-}
-
-static std::string hostname_for_ipv4(int ip) {
-	return hostname_for_ipv4(ipv4_to_str(ip));
-}
-
-static int ipv4_from_hint(const std::string& hint) {
-    addrinfo hints;
-
-    hints.ai_family     = AF_INET; // ipv4 only for now
-    hints.ai_socktype   = SOCK_STREAM;
-    hints.ai_flags      = 0;
-    hints.ai_protocol   = 0;
-    hints.ai_canonname  = NULL;
-    hints.ai_addr       = NULL;
-    hints.ai_next       = NULL;
-
-    addrinfo* result = NULL;
-
-    int retval = getaddrinfo(hint.c_str(), NULL, &hints, &result);
-    if (retval != 0) {
-        freeaddrinfo(result);
-        return 0;
-    }
- 
-    for (addrinfo* rp = result; rp != NULL; rp = rp->ai_next) {
-        const int buff_len = 512;
-        sockaddr_in* sai = (sockaddr_in*)rp->ai_addr;
-        int ip = ntohl(sai->sin_addr.s_addr);
-        freeaddrinfo(result);
-
-        return ip;
-    }
-
-    freeaddrinfo(result);
-    
-    return 0;
-}
-
-} // namespace nutils
 } // namespace dealer
 } // namespace cocaine
 

@@ -28,8 +28,14 @@ service_t::service_t(const service_info_t& info,
 					 bool logging_enabled) :
 	dealer_object_t(ctx, logging_enabled),
 	m_info(info),
+	m_is_running(false),
 	m_is_dead(false)
 {
+	// run response_t dispatch thread
+	m_is_running = true;
+
+	m_responces_cleanup_timer.reset();
+
 	// run timed out messages checker
 	m_deadlined_messages_refresher.reset(new refresher(boost::bind(&service_t::check_for_deadlined_messages, this),
 										 deadline_check_interval));
@@ -50,6 +56,8 @@ service_t::~service_t() {
 
 		it->second.reset();
 	}
+
+	m_is_running = false;
 
 	log(PLOG_INFO, "FINISHED SERVICE [%s]", m_info.name.c_str());
 }
@@ -87,61 +95,50 @@ service_t::send_message(cached_message_prt_t message) {
 }
 
 void
-service_t::enqueue_responce(const cached_response_t& response_chunk) {
+service_t::enqueue_responce(boost::shared_ptr<response_chunk_t>& response) {
+	assert(response);
+
+	boost::shared_ptr<response_t> response_object;
 
 	{
-		boost::shared_ptr<response_t> response_object;
+		boost::mutex::scoped_lock lock(m_responces_mutex);
 
-		{
-			boost::mutex::scoped_lock lock(m_responces_mutex);
-
-			std::map<std::string, boost::shared_ptr<response_t> >::iterator it;
-			it = m_responses.find(response_chunk.uuid());
-
-			// no response object -> discard chunk
-			if (it == m_responses.end()) {
-				return;
-			}
-
-			// response object has only one ref -> discard chunk
-			if (it->second.unique()) {
-				m_responses.erase(it);
-				return;
-			}
-
-			response_object = it->second;
-		}
-
-		assert(response_object);
-
-		// create simplified response_t
-		chunk_info c_info;
-		c_info.uuid = response_chunk.uuid();
-		c_info.path = response_chunk.path();
-		c_info.code = response_chunk.code();
-		c_info.error_msg = response_chunk.error_message();
-
-		response_object->add_chunk(response_chunk.data(), c_info);
-	}
-
-	if (m_gc_timer.elapsed().as_double() > 60.0f) {
 		std::map<std::string, boost::shared_ptr<response_t> >::iterator it;
 
-		boost::mutex::scoped_lock lock(m_responces_mutex);
-		it = m_responses.begin();
+		// check for unique responses and remove them
+		if (m_responces_cleanup_timer.elapsed().as_double() > 5.0f) {
+			it = m_responses.begin();
 
-		while (it != m_responses.end()) {
-			if (it->second.unique()) {
-				it->second.reset();
-				m_responses.erase(it++);
+			while (it != m_responses.end()) {
+				if (it->second.unique()) {
+					m_responses.erase(it++);
+				}
+				else {
+					++it;
+				}
 			}
-			else {
-				++it;
-			}
+
+			m_responces_cleanup_timer.reset();
 		}
 
-		m_gc_timer.reset();
+		// find response object for received chunk
+		it = m_responses.find(response->uuid);
+
+		// no response object -> discard chunk
+		if (it == m_responses.end()) {
+			return;
+		}
+
+		// response object has only one ref -> discard chunk
+		if (it->second.unique()) {
+			return;
+		}
+
+		response_object = it->second;
 	}
+
+	assert(response_object);
+	response_object->add_chunk(response);
 }
 
 bool
@@ -468,32 +465,34 @@ service_t::check_for_deadlined_messages() {
 
 		it->second = not_expired_queue;
 
-		// create error response_t for deadlined message
-		cached_messages_deque_t::iterator expired_qit = expired_queue->begin();
+		// create error response for deadlined message
+		std::string enqued_timestamp_str;
+		std::string sent_timestamp_str;
+		std::string curr_timestamp_str;
 
+		cached_messages_deque_t::iterator expired_qit = expired_queue->begin();
 		for (;expired_qit != expired_queue->end(); ++expired_qit) {
-			cached_response_t response((*expired_qit)->uuid(),
-									   "",
-									   (*expired_qit)->path(),
-									   deadline_error,
-									   "message expired");
+			boost::shared_ptr<response_chunk_t> response(new response_chunk_t);
+			response->uuid = (*expired_qit)->uuid();
+			response->rpc_code = SERVER_RPC_MESSAGE_ERROR;
+			response->error_code = deadline_error;
+			response->error_message = "unhandled message expired";
+			enqueue_responce(response);
+
+			enqued_timestamp_str = (*expired_qit)->enqued_timestamp().as_string();
+			sent_timestamp_str = (*expired_qit)->sent_timestamp().as_string();
+			curr_timestamp_str = time_value::get_current_time().as_string();
 
 			if (log_flag_enabled(PLOG_ERROR)) {
-				std::string enqued_timestamp_str = (*expired_qit)->enqued_timestamp().as_string();
-				std::string sent_timestamp_str = (*expired_qit)->sent_timestamp().as_string();
-				std::string curr_timestamp_str = time_value::get_current_time().as_string();
-
 				std::string log_str = "deadline policy exceeded, for unhandled message %s, (enqued: %s, sent: %s, curr: %s)";
 
 				log(PLOG_ERROR,
 					log_str,
-					(*expired_qit)->uuid().c_str(),
+					response->uuid.c_str(),
 					enqued_timestamp_str.c_str(),
 					sent_timestamp_str.c_str(),
 					curr_timestamp_str.c_str());
 			}
-
-			enqueue_responce(response);
 		}
 	}
 }

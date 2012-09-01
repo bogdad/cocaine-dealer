@@ -28,8 +28,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/detail/atomic_count.hpp>
 
-#include <cocaine/dealer/structs.hpp>
-
 namespace cocaine {
 namespace dealer {
 

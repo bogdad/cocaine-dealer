@@ -140,7 +140,6 @@ eblob_t::iterate(iteration_callback_t iteration_callback, int start_column, int 
 
     memset(&ctl, 0, sizeof(ctl));
 
-    ctl.check_index = 1;
     ctl.flags = EBLOB_ITERATE_FLAGS_ALL;
     ctl.priv = this;
     ctl.iterator_cb = iterator_cb;

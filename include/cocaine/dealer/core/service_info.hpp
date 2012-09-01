@@ -25,7 +25,6 @@
 #include <sstream>
 #include <map>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/defaults.hpp"
 #include "cocaine/dealer/message_policy.hpp"
 

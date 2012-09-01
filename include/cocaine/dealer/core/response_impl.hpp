@@ -25,10 +25,12 @@
 #include <boost/weak_ptr.hpp>
 #include <boost/thread.hpp>
 
+#include <list>
+
 #include <cocaine/dealer/forwards.hpp>
-#include <cocaine/dealer/structs.hpp>
 #include <cocaine/dealer/utils/data_container.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
+#include <cocaine/dealer/response_chunk.hpp>
+#include <cocaine/dealer/utils/error.hpp>
 
 namespace cocaine {
 namespace dealer {
@@ -44,22 +46,40 @@ public:
 	// 2) timeout == 0 - check for response_t chunk and return result immediately
 	// 3) timeout > 0 - check for response_t chunk with some timeout value
 
-	bool get(chunk_data& data, double timeout);
+	bool get(data_container* data, double timeout = -1.0f);
 
 private:
 	friend class response_t;
 
-	void add_chunk(const chunk_data& data,
-				   const chunk_info& info);
+	void add_chunk(const boost::shared_ptr<response_chunk_t>& chunk);
+	bool get_chunk(data_container* data) {
+		// process received chunks
+		if (m_chunks.empty()) {
+			return false;
+		}
 
-	std::vector<chunk_data>			m_chunks;
-	std::string						m_uuid;
-	const message_path_t			m_path;
-	chunk_info						m_resp_info;
+		std::list<boost::shared_ptr<response_chunk_t> >::iterator it;
+		it = m_chunks.begin();
+
+		if ((*it)->rpc_code != SERVER_RPC_MESSAGE_ERROR) {
+			*data = (*it)->data;
+			(*it)->data.clear();
+			m_chunks.erase(it);
+			return true;
+		}
+		else {
+			m_message_finished = true;
+			throw dealer_error(static_cast<cocaine::dealer::error_code>((*it)->error_code), 
+							   (*it)->error_message);
+		}
+	}
+
+	std::list<boost::shared_ptr<response_chunk_t> > m_chunks;
+	std::string					m_uuid;
+	const message_path_t		m_path;
 
 	bool m_response_finished;
 	bool m_message_finished;
-	bool m_caught_error;
 
 	boost::mutex				m_mutex;
 	boost::condition_variable	m_cond_var;

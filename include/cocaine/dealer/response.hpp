@@ -26,8 +26,9 @@
 #include <boost/shared_ptr.hpp>
 
 #include <cocaine/dealer/forwards.hpp>
-#include <cocaine/dealer/structs.hpp>
 #include <cocaine/dealer/utils/data_container.hpp>
+#include <cocaine/dealer/response_chunk.hpp>
+#include <cocaine/dealer/message_path.hpp>
 
 namespace cocaine {
 namespace dealer {
@@ -38,13 +39,12 @@ public:
 
 	virtual ~response_t();
 
-	bool get(chunk_data& data, double timeout = -1.0);
+	bool get(data_container* data, double timeout = -1.0);
 
 private:
 	friend class service_t;
 
-    void add_chunk(const chunk_data& data,
-                   const chunk_info& info);
+    void add_chunk(const boost::shared_ptr<response_chunk_t>& chunk);
 
 	boost::shared_ptr<response_impl_t> m_impl;
 };

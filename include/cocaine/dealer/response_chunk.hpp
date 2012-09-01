@@ -18,22 +18,41 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>. 
 */
 
-#include "cocaine/dealer/utils/filesystem.hpp"
+#ifndef _COCAINE_DEALER_RESPONSE_CHUNK_HPP_INCLUDED_
+#define _COCAINE_DEALER_RESPONSE_CHUNK_HPP_INCLUDED_
+
+#include <string>
+
+#include <cocaine/dealer/utils/data_container.hpp>
 
 namespace cocaine {
 namespace dealer {
 
-std::string absolute_path(const std::string& path) {
-	char* absolute_path = realpath(path.c_str(), NULL);
+enum e_server_response_code {
+    SERVER_RPC_MESSAGE_UNKNOWN = -1,
+    SERVER_RPC_MESSAGE_ACK = 1,
+    SERVER_RPC_MESSAGE_CHUNK,
+    SERVER_RPC_MESSAGE_ERROR,
+    SERVER_RPC_MESSAGE_CHOKE
+};
 
-    if (NULL != absolute_path) {
-    	std::string absolute_path_str(absolute_path);
-    	free(absolute_path);
-    	return absolute_path_str;
-    }
+class response_chunk_t {
+public:
+	response_chunk_t() :
+        rpc_code(SERVER_RPC_MESSAGE_UNKNOWN),
+        error_code(-1) {};
 
-    return path;
-}
+	std::string		uuid;
+	std::string		route;
+	data_container	data;
+	timeval			received_timestamp;
+
+	int			rpc_code;
+	int			error_code;
+	std::string error_message;
+};
 
 } // namespace dealer
 } // namespace cocaine
+
+#endif // _COCAINE_DEALER_RESPONSE_CHUNK_HPP_INCLUDED_

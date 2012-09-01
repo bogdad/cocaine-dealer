@@ -30,9 +30,8 @@
 #include <zmq.hpp>
 
 #include "cocaine/dealer/core/message_iface.hpp"
-#include "cocaine/dealer/core/message_cache.hpp"
 #include "cocaine/dealer/core/dealer_object.hpp"
-#include "cocaine/dealer/core/cached_response.hpp"
+#include "cocaine/dealer/response_chunk.hpp"
 #include "cocaine/dealer/core/cocaine_endpoint.hpp"
 
 namespace cocaine {
@@ -42,7 +41,6 @@ class balancer_t : private boost::noncopyable, public dealer_object_t {
 public:
 	balancer_t(const std::string& identity,
 			   const std::vector<cocaine_endpoint_t>& endpoints,
-			   boost::shared_ptr<message_cache_t> message_cache_t,
 			   const boost::shared_ptr<context_t>& ctx,
 			   bool logging_enabled = true);
 
@@ -52,7 +50,7 @@ public:
 	void disconnect();
 
 	bool send(boost::shared_ptr<message_iface>& message, cocaine_endpoint_t& endpoint);
-	bool receive(cached_response_t& response);
+	bool receive(boost::shared_ptr<response_chunk_t>& response);
 
 	void update_endpoints(const std::vector<cocaine_endpoint_t>& endpoints,
 						  std::vector<cocaine_endpoint_t>& missing_endpoints);
@@ -61,6 +59,7 @@ public:
 
 	static const int socket_timeout = 0;
 	static const int64_t socket_hwm = 0;
+	static bool is_valid_rpc_code(int rpc_code);
 
 private:
 	void get_endpoints_diff(const std::vector<cocaine_endpoint_t>& updated_endpoints,
@@ -69,17 +68,13 @@ private:
 
 	void recreate_socket();
 
-	bool process_responce(boost::ptr_vector<zmq::message_t>& chunks,
-						  cached_response_t& response);
-
 	cocaine_endpoint_t& get_next_endpoint();
 
 private:
 	boost::shared_ptr<zmq::socket_t>	m_socket;
 	std::vector<cocaine_endpoint_t>		m_endpoints;
-	boost::shared_ptr<message_cache_t>	m_message_cache;
-	size_t		m_current_endpoint_index;
-	std::string	m_socket_identity;
+	size_t								m_current_endpoint_index;
+	std::string							m_socket_identity;
 };
 
 } // namespace dealer

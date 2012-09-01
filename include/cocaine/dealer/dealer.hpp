@@ -28,6 +28,8 @@
 
 #include <cocaine/dealer/response.hpp>
 #include <cocaine/dealer/utils/data_container.hpp>
+#include <cocaine/dealer/message_path.hpp>
+#include <cocaine/dealer/message_policy.hpp>
 
 namespace cocaine {
 namespace dealer {

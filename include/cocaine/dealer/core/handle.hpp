@@ -38,13 +38,12 @@
 
 #include "json/json.h"
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/core/balancer.hpp"
 #include "cocaine/dealer/core/handle_info.hpp"
 #include "cocaine/dealer/core/message_iface.hpp"
 #include "cocaine/dealer/core/message_cache.hpp"
 #include "cocaine/dealer/core/dealer_object.hpp"
-#include "cocaine/dealer/core/cached_response.hpp"
+#include "cocaine/dealer/response_chunk.hpp"
 #include "cocaine/dealer/core/cocaine_endpoint.hpp"
 #include "cocaine/dealer/utils/progress_timer.hpp"
 
@@ -62,7 +61,8 @@ public:
 	typedef std::vector<cocaine_endpoint_t> endpoints_list_t;
 	typedef boost::shared_ptr<zmq::socket_t> socket_ptr_t;
 
-	typedef boost::function<void(const cached_response_t&)> responce_callback_t;
+	typedef boost::shared_ptr<response_chunk_t> response_chunk_prt_t;
+	typedef boost::function<void(response_chunk_prt_t)> responce_callback_t;
 
 public:
 	handle_t(const handle_info_t& info,
@@ -106,25 +106,26 @@ private:
 	void process_deadlined_messages();
 
 	// working with responces
-	void enqueue_response(cached_response_t& response_t);
+	void enqueue_response(boost::shared_ptr<response_chunk_t>& response);
 
 private:
-	boost::shared_ptr<message_cache_t>	m_message_cache;
-	std::auto_ptr<zmq::socket_t>		m_zmq_control_socket;
-
 	handle_info_t		m_info;
 	endpoints_list_t	m_endpoints;
-
 	boost::thread		m_thread;
 	boost::mutex		m_mutex;
 	volatile bool		m_is_running;
 	volatile bool		m_is_connected;
 
+	boost::shared_ptr<message_cache_t> m_message_cache;
+
+	std::auto_ptr<zmq::socket_t> m_zmq_control_socket;
+	bool m_receiving_control_socket_ok;
+
 	responce_callback_t m_response_callback;
 
-	progress_timer		m_last_response_timer;
-	progress_timer		m_deadlined_messages_timer;
-	progress_timer		m_control_messages_timer;
+	progress_timer m_last_response_timer;
+	progress_timer m_deadlined_messages_timer;
+	progress_timer m_control_messages_timer;
 };
 
 } // namespace dealer

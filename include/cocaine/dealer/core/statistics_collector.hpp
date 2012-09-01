@@ -28,7 +28,6 @@
 #include <boost/utility.hpp>
 #include <boost/thread/thread.hpp>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/core/configuration.hpp"
 
 namespace cocaine {

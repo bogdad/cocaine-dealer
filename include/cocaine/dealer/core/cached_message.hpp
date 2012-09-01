@@ -27,7 +27,6 @@
 #include <iomanip>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/current_function.hpp>
 
@@ -102,7 +101,6 @@ private:
 private:
 	DataContainer		m_data;
 	MetadataContainer	m_metadata;
-	boost::mutex		m_mutex;
 };
 
 template<typename DataContainer, typename MetadataContainer>
@@ -204,8 +202,6 @@ cached_message_t<DataContainer, MetadataContainer>::mdata_container() {
 
 template<typename DataContainer, typename MetadataContainer> message_iface&
 cached_message_t<DataContainer, MetadataContainer>::operator = (const message_iface& rhs) {
-	boost::mutex::scoped_lock lock(m_mutex);
-
 	if (this == &rhs) {
 		return *this;
 	}
@@ -300,8 +296,6 @@ cached_message_t<DataContainer, MetadataContainer>::policy() const {
 
 template<typename DataContainer, typename MetadataContainer> void
 cached_message_t<DataContainer, MetadataContainer>::mark_as_sent(bool value) {
-	boost::mutex::scoped_lock lock(m_mutex);
-
 	if (value) {
 		m_metadata.is_sent = true;
 		m_metadata.sent_timestamp.init_from_current_time();

@@ -23,8 +23,9 @@
 
 #include <string>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/utils/time_value.hpp"
+#include "cocaine/dealer/message_path.hpp"
+#include "cocaine/dealer/message_policy.hpp"
 
 namespace cocaine {
 namespace dealer {

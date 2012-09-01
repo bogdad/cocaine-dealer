@@ -25,10 +25,9 @@
 #include <boost/bind.hpp>
 
 #include "cocaine/dealer/dealer.hpp"
-#include <cocaine/dealer/core/response_impl.hpp>
-#include <cocaine/dealer/core/dealer_impl.hpp>
-#include <cocaine/dealer/utils/error.hpp>
-#include <cocaine/dealer/utils/progress_timer.hpp>
+#include "cocaine/dealer/core/response_impl.hpp"
+#include "cocaine/dealer/core/dealer_impl.hpp"
+#include "cocaine/dealer/utils/progress_timer.hpp"
 
 namespace cocaine {
 namespace dealer {
@@ -37,8 +36,7 @@ response_impl_t::response_impl_t(const std::string& uuid, const message_path_t& 
 	m_uuid(uuid),
 	m_path(path),
 	m_response_finished(false),
-	m_message_finished(false),
-	m_caught_error(false)
+	m_message_finished(false)
 {}
 
 response_impl_t::~response_impl_t() {
@@ -49,94 +47,76 @@ response_impl_t::~response_impl_t() {
 }
 
 bool
-response_impl_t::get(chunk_data& data, double timeout) {
+response_impl_t::get(data_container* data, double timeout) {
 	boost::mutex::scoped_lock lock(m_mutex);
 
-	// no more chunks?
-	if (m_message_finished && m_chunks.size() == 0) {
-		if (!m_caught_error) {
-			return false;
-		}
-	}
-
-	// block until received callback
-	if (!m_message_finished) {
-		if (timeout < 0.0) {
-			while (!m_response_finished) { // handle spurrious wakes
-				m_cond_var.wait(lock);
-			}
-		}
-		else {
-			boost::system_time t = boost::get_system_time();
-			t += boost::posix_time::milliseconds(timeout * 1000);
-
-			progress_timer pt;
-
-			while (!m_response_finished && pt.elapsed().as_double() < timeout) { // handle spurrious wakes
-				m_cond_var.timed_wait(lock, t);
-			}
-		}
-
-		if (m_response_finished) {
-			m_response_finished = false;
-		}
-	}
-	else {
-		if (m_chunks.size() > 0) {
-			data = m_chunks[0];
-			m_chunks.erase(m_chunks.begin());
-			return true;
-		}
-		else {
-			m_message_finished = true;
-
-			if (m_caught_error) {
-				m_caught_error = false;
-				throw dealer_error(static_cast<cocaine::dealer::error_code>(m_resp_info.code), m_resp_info.error_msg);
-			}
-
-			return false;
-		}
-	}
-
-	if (timeout >= 0.0 && m_chunks.empty() && !m_caught_error) {
+	// we're all done (error or choke received)
+	if (m_message_finished && m_chunks.empty()) {
 		return false;
 	}
 
-	// expecting another chunk
-	if (m_chunks.size() > 0) {
-		data = m_chunks[0];
-		m_chunks.erase(m_chunks.begin());
+	// process received chunks
+	if (get_chunk(data)) {
 		return true;
 	}
 
-	if (m_caught_error) {
-		m_caught_error = false;
-		throw dealer_error(static_cast<cocaine::dealer::error_code>(m_resp_info.code), m_resp_info.error_msg);
+ 	// block in case there's no chunk
+	if (timeout < 0.0) {
+		// block until received chunk
+		while (!m_response_finished) { // handle spurrious wakes
+			m_cond_var.wait(lock);
+		}
+	}
+	else {
+		// block until received chunk or timed out
+		boost::system_time t = boost::get_system_time();
+		t += boost::posix_time::milliseconds(timeout * 1000);
+
+		progress_timer pt;
+
+		while (!m_response_finished && pt.elapsed().as_double() < timeout) { // handle spurrious wakes
+			m_cond_var.timed_wait(lock, t);
+		}
 	}
 
-	m_message_finished = true;
+	// reset state
+	if (m_response_finished) {
+		m_response_finished = false;
+	}
+
+	// process received chunks
+	if (get_chunk(data)) {
+		return true;
+	}
+
 	return false;
 }
 
 void
-response_impl_t::add_chunk(const chunk_data& data, const chunk_info& info) {
+response_impl_t::add_chunk(const boost::shared_ptr<response_chunk_t>& chunk) {
 	boost::mutex::scoped_lock lock(m_mutex);
 
 	if (m_message_finished) {
 		return;
 	}
 
-	if (info.code == response_code::message_choke) {
-		m_message_finished = true;
-	}
-	else if (info.code == response_code::message_chunk) {
-		m_chunks.push_back(data);
-	}
-	else {
-		m_caught_error = true;
-		m_resp_info = info; // remember error data
-		m_message_finished = true;
+	switch (chunk->rpc_code) {
+		case SERVER_RPC_MESSAGE_CHUNK:
+			m_chunks.push_back(chunk);
+			break;
+
+		case SERVER_RPC_MESSAGE_CHOKE:
+			m_message_finished = true;
+			break;
+
+		case SERVER_RPC_MESSAGE_ERROR:
+			m_chunks.push_back(chunk);
+			m_message_finished = true;
+			break;
+
+		default:
+			throw internal_error("response_t received chunk with invalid RPC code: %d", chunk->rpc_code);
+			break;
 	}
 
 	m_response_finished = true;

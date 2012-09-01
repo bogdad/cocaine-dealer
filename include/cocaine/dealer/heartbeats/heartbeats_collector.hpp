@@ -38,7 +38,6 @@
 
 #include <zmq.hpp>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/defaults.hpp"
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/utils/refresher.hpp"
@@ -48,8 +47,6 @@
 #include "cocaine/dealer/core/cocaine_endpoint.hpp"
 #include "cocaine/dealer/heartbeats/hosts_fetcher_iface.hpp"
 #include "cocaine/dealer/cocaine_node_info/cocaine_node_info.hpp"
-
-#include "cocaine/dealer/utils/uuid.hpp"
 
 namespace cocaine {
 namespace dealer {
@@ -97,7 +94,7 @@ private:
 
 	// synchronization
 	boost::mutex m_mutex;
-	wuuid_t m_uuid;
+	std::string m_uuid;
 };
 
 } // namespace dealer

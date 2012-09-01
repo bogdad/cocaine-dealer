@@ -26,7 +26,6 @@
 
 #include <zmq.hpp>
 
-#include "cocaine/dealer/structs.hpp"
 #include "cocaine/dealer/defaults.hpp"
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/utils/smart_logger.hpp"

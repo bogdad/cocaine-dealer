@@ -41,12 +41,12 @@
 #include "cocaine/dealer/core/service_info.hpp"
 #include "cocaine/dealer/core/dealer_object.hpp"
 #include "cocaine/dealer/core/message_iface.hpp"
-#include "cocaine/dealer/core/cached_response.hpp"
 #include "cocaine/dealer/core/cocaine_endpoint.hpp"
 
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/utils/smart_logger.hpp"
 #include "cocaine/dealer/utils/refresher.hpp"
+#include "cocaine/dealer/utils/progress_timer.hpp"
 
 #include "cocaine/dealer/storage/eblob.hpp"
 
@@ -92,7 +92,7 @@ private:
 	void remove_outstanding_handles(const handles_info_list_t& handles_info);
 	void update_existing_handles(const handles_endpoints_t& handles_endpoints);
 
-	void enqueue_responce(const cached_response_t& response_chunk);
+	void enqueue_responce(boost::shared_ptr<response_chunk_t>& response);
 
 	void check_for_deadlined_messages();
 
@@ -125,18 +125,20 @@ private:
 	// responces map <uuid, response_t>
 	std::map<std::string, boost::shared_ptr<response_t> > m_responses;
 
-	boost::mutex m_responces_mutex;
-	boost::mutex m_handles_mutex;
-	boost::mutex m_unhandled_mutex;
+	boost::mutex				m_responces_mutex;
+	boost::mutex				m_handles_mutex;
+	boost::mutex				m_unhandled_mutex;
+
+	volatile bool m_is_running;
 
 	// deadlined messages refresher
 	std::auto_ptr<refresher> m_deadlined_messages_refresher;
 
 	static const int deadline_check_interval = 1000; // millisecs
 
-	bool m_is_dead;
+	progress_timer m_responces_cleanup_timer;
 
-	progress_timer m_gc_timer;
+	bool m_is_dead;
 };
 
 } // namespace dealer
