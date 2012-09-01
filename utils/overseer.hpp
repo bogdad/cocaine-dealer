@@ -29,11 +29,8 @@
 #include <boost/shared_ptr.hpp>
 
 #include "json/json.h"
-
 #include "cocaine/dealer/heartbeats/file_hosts_fetcher.hpp"
-
 #include "cocaine/dealer/utils/progress_timer.hpp"
-#include "cocaine/dealer/utils/filesystem.hpp"
 
 #include "parser.hpp"
 #include "structs.hpp"

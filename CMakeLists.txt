@@ -94,13 +94,14 @@ ADD_EXECUTABLE(overseer
     src/cocaine_node_app_info.cpp
     src/cocaine_node_task_info.cpp
     src/progress_timer.cpp
-    src/filesystem.cpp
-    src/time_value.cpp)
+    src/time_value.cpp
+    src/networking.cpp)
 
 TARGET_LINK_LIBRARIES(overseer
     boost_program_options-mt
     json
-    zmq)
+    zmq
+    msgpack)
 
 INSTALL(
     TARGETS

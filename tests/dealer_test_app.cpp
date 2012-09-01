@@ -25,7 +25,6 @@
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/regex.hpp>
-#include <boost/shared_array.hpp>
 
 #include "cocaine/dealer/dealer.hpp"
 #include "cocaine/dealer/utils/progress_timer.hpp"
@@ -54,9 +53,9 @@ void worker(dealer_t* d,
 				resp = d->send_message(payload.data(), payload.size(), path);
 			}
 
-			chunk_data chunk;
-			while (resp->get(chunk)) {
-				//std::cout << std::string((char*)chunk.data(), 0, chunk.size()) << std::endl;
+			data_container data;
+			while (resp->get(&data)) {
+				//std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 			}
 		}
 		catch (const dealer_error& err) {
@@ -132,24 +131,22 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 
 int
 main(int argc, char** argv) {
-	//dealer_t			d("tests/config.json");
-	//sleep(3);
-	//return 0;
 	/*
 	dealer_t			d("tests/config.json");
 	message_path_t		path("rimz_app", "rimz_func");
 	std::string			payload = "response chunk: ";
 
+	sleep(2);
+
 	boost::shared_ptr<response_t> resp = d.send_message(payload.data(), payload.size(), path);
 
 	data_container data;
-	while (resp->get(&data, 0.1)) {
+	while (resp->get(&data)) {
 		std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 	}
 
 	return EXIT_SUCCESS;
 	*/
-
 	/*
 	dealer_t			d("tests/config.json");
 	message_path_t		path("rimz.*", "rimz_func");
