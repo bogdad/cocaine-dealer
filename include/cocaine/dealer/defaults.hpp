@@ -68,6 +68,7 @@ struct defaults_t {
 	static const std::string eblob_path;
 	static const size_t eblob_blob_size = 2147483648; // 2 gb
 	static const int eblob_sync_interval = 2;
+	static const int eblob_thread_pool_size = 16;
 
 	static const unsigned short control_port = 5000;
 	static const unsigned long long heartbeat_interval = 2;	// seconds

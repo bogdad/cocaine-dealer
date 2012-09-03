@@ -268,7 +268,7 @@ balancer_t::check_for_responses(int poll_timeout) const {
 }
 
 bool
-balancer_t::is_valid_rpc_code(int rpc_code){
+balancer_t::is_valid_rpc_code(int rpc_code) {
 	switch (rpc_code) {
 		case SERVER_RPC_MESSAGE_ACK:
 		case SERVER_RPC_MESSAGE_CHUNK:

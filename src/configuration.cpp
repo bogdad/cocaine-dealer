@@ -41,6 +41,7 @@ configuration_t::configuration_t() :
 	m_eblob_path(defaults_t::eblob_path),
 	m_eblob_blob_size(defaults_t::eblob_blob_size),
 	m_eblob_sync_interval(defaults_t::eblob_sync_interval),
+	m_eblob_thread_pool_size(defaults_t::eblob_thread_pool_size),
 	m_statistics_enabled(false),
 	m_remote_statistics_enabled(false),
 	m_remote_statistics_port(defaults_t::statistics_port)
@@ -57,6 +58,7 @@ configuration_t::configuration_t(const std::string& path) :
 	m_eblob_path(defaults_t::eblob_path),
 	m_eblob_blob_size(defaults_t::eblob_blob_size),
 	m_eblob_sync_interval(defaults_t::eblob_sync_interval),
+	m_eblob_thread_pool_size(defaults_t::eblob_thread_pool_size),
 	m_statistics_enabled(false),
 	m_remote_statistics_enabled(false),
 	m_remote_statistics_port(defaults_t::statistics_port)
@@ -159,25 +161,6 @@ configuration_t::parse_logger_settings(const Json::Value& config_value) {
 }
 
 void
-configuration_t::parse_messages_cache_settings(const Json::Value& config_value) {
-	const Json::Value cache_value = config_value["message_cache_t"];
-	
-	std::string message_cache_type_str = cache_value.get("type", "RAM_ONLY").asString();
-
-	if (message_cache_type_str == "PERSISTENT") {
-		m_message_cache_type = PERSISTENT;
-	}
-	else if (message_cache_type_str == "RAM_ONLY") {
-		m_message_cache_type = RAM_ONLY;
-	}
-	else {
-		std::string error_str = "unknown message cache type: " + message_cache_type_str;
-		error_str += "message_cache_t \"type\" property can only take RAM_ONLY or PERSISTENT as value.";
-		throw internal_error(error_str);
-	}
-}
-
-void
 configuration_t::parse_persistant_storage_settings(const Json::Value& config_value) {
 	const Json::Value persistent_storage_value = config_value["persistent_storage"];
 
@@ -190,6 +173,7 @@ configuration_t::parse_persistant_storage_settings(const Json::Value& config_val
 	}
 
 	m_eblob_sync_interval = persistent_storage_value.get("eblob_sync_interval", defaults_t::eblob_sync_interval).asInt();
+	m_eblob_thread_pool_size = persistent_storage_value.get("thread_pool_size", defaults_t::eblob_thread_pool_size).asInt();
 }
 
 void
@@ -342,9 +326,8 @@ configuration_t::load(const std::string& path) {
 		parse_basic_settings(root);
 		parse_logger_settings(root);
 		parse_services_settings(root);
+		parse_persistant_storage_settings(root);
 
-		//parse_messages_cache_settings(root);
-		//parse_persistant_storage_settings(root);
 		//parse_statistics_settings(config_value);
 	}
 	catch (const std::exception& ex) {
@@ -364,9 +347,19 @@ configuration_t::parse_basic_settings(const Json::Value& config_value) {
 
 	// parse message_deadline
 	const Json::Value deadline_value = config_value.get("default_message_deadline",
-															   static_cast<int>(defaults_t::default_message_deadline));
+														static_cast<int>(defaults_t::default_message_deadline));
 
 	m_default_message_deadline = static_cast<unsigned long long>(deadline_value.asInt());
+
+
+	bool use_persistense = config_value.get("use_persistense", defaults_t::message_cache_type).asBool();
+	
+	if (use_persistense) {
+		m_message_cache_type = PERSISTENT;
+	}
+	else {
+		m_message_cache_type = RAM_ONLY;
+	}
 }
 
 const std::string&
@@ -422,6 +415,11 @@ configuration_t::eblob_blob_size() const {
 int
 configuration_t::eblob_sync_interval() const {
 	return m_eblob_sync_interval;
+}
+
+int
+configuration_t::eblob_thread_pool_size() const {
+	return m_eblob_thread_pool_size;	
 }
 
 bool

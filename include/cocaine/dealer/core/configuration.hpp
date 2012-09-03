@@ -68,6 +68,7 @@ public:
 	std::string eblob_path() const;
 	int64_t eblob_blob_size() const;
 	int eblob_sync_interval() const;
+	int eblob_thread_pool_size() const;
 	
 	bool is_statistics_enabled() const;
 	bool is_remote_statistics_enabled() const;
@@ -82,7 +83,6 @@ public:
 private:
 	void parse_basic_settings(const Json::Value& config_value);
 	void parse_logger_settings(const Json::Value& config_value);
-	void parse_messages_cache_settings(const Json::Value& config_value);
 	void parse_persistant_storage_settings(const Json::Value& config_value);
 	void parse_statistics_settings(const Json::Value& config_value);
 	void parse_services_settings(const Json::Value& config_value);
@@ -105,6 +105,7 @@ private:
 	std::string m_eblob_path;
 	uint64_t	m_eblob_blob_size;
 	int			m_eblob_sync_interval;
+	int			m_eblob_thread_pool_size;
 	
 	// statistics
 	bool		m_statistics_enabled;

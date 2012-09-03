@@ -24,16 +24,17 @@
 #include <string>
 
 #include <cocaine/dealer/utils/data_container.hpp>
+#include <cocaine/dealer/types.hpp>
 
 namespace cocaine {
 namespace dealer {
 
 enum e_server_response_code {
     SERVER_RPC_MESSAGE_UNKNOWN = -1,
-    SERVER_RPC_MESSAGE_ACK = 1,
-    SERVER_RPC_MESSAGE_CHUNK,
-    SERVER_RPC_MESSAGE_ERROR,
-    SERVER_RPC_MESSAGE_CHOKE
+    SERVER_RPC_MESSAGE_ACK = acknowledgement,
+    SERVER_RPC_MESSAGE_CHUNK = chunk,
+    SERVER_RPC_MESSAGE_ERROR = error,
+    SERVER_RPC_MESSAGE_CHOKE = choke
 };
 
 class response_chunk_t {
