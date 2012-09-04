@@ -34,6 +34,7 @@
 #include <boost/xpressive/xpressive.hpp>
 
 #include "cocaine/dealer/forwards.hpp"
+#include "cocaine/dealer/message.hpp"
 #include "cocaine/dealer/core/context.hpp"
 #include "cocaine/dealer/core/service.hpp"
 #include "cocaine/dealer/core/dealer_object.hpp"
@@ -59,6 +60,9 @@ public:
 public:
 	explicit dealer_impl_t(const std::string& config_path);
 	virtual ~dealer_impl_t();
+
+	response_ptr_t
+	send_message(const message_t& message);
 
 	response_ptr_t
 	send_message(const void* data,
@@ -91,6 +95,10 @@ public:
 
 	message_policy_t policy_for_service(const std::string& service_alias);
 
+	size_t unsent_count(const std::string& service_alias);
+	void load_unsent(const std::string& service_alias, std::vector<message_t>& messages);
+	void remove_unsent(const message_t& message);
+
 private:	
 	void connect();
 	void disconnect();
@@ -99,8 +107,7 @@ private:
 									   const handles_endpoints_t& endpoints_for_handles);
 
 	// restoring messages from storage cache
-	void load_cached_messages_for_service(service_ptr_t& service);
-	void storage_iteration_callback(void* data, uint64_t size, int column);
+	void storage_iteration_callback(const std::string& key, void* data, uint64_t size, int column);
 
 	bool regex_match(const std::string& regex_str, const std::string& value);
 
@@ -117,15 +124,15 @@ private:
 	// heartsbeat collector
 	std::auto_ptr<heartbeats_collector_t> m_heartbeats_collector;
 
-	// temporary service ptr (2 DO: refactor this utter crap)
-	service_ptr_t m_restored_service_tmp_ptr;
-
 	// synchronization
 	boost::mutex m_mutex;
 	boost::mutex m_regex_mutex;
 
 	// alive state
 	bool m_is_dead;
+
+	// tmp var to fill with unsent data. used in eblob iterator method (this is god awful code, needs proper fix)
+	std::vector<message_t>* m_messages_ptr;
 };
 
 } // namespace dealer

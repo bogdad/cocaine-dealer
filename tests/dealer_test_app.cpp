@@ -32,6 +32,8 @@
 #include "cocaine/dealer/utils/refresher.hpp"
 #include "cocaine/dealer/utils/networking.hpp"
 
+#include <eblob/eblob.hpp>
+
 using namespace cocaine::dealer;
 using namespace boost::program_options;
 
@@ -43,6 +45,7 @@ void worker(dealer_t* d,
 {
 	message_path_t path("rimz_app", "rimz_func");
 	//message_path_t path("testing", "method3");
+	//message_path_t path("dummy", "hash");
 	std::string payload = "response chunk: ";
 
 	while ((*dealer_messages_count)[dealer_index] >= 0) {
@@ -83,8 +86,6 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 	std::cout << "sending " << dealers_count * messages_count << " messages using ";
 	std::cout << dealers_count << " dealers with " << threads_per_dealer << " threads each.\n";
 	std::cout << "-----------------------------------------------------------------------------------------\n";
-	
-	progress_timer timer;
 
 	std::vector<int> dealer_messages_count;
 	boost::ptr_vector<dealer_t> dealers;
@@ -93,6 +94,8 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 		dealers.push_back(new dealer_t(config_path));
 		dealer_messages_count.push_back(messages_count);
 	}
+
+	progress_timer timer;
 
 	// create threads
 	std::cout << "sending messages...\n";
@@ -131,9 +134,31 @@ void create_client(size_t dealers_count, size_t threads_per_dealer, size_t messa
 
 int
 main(int argc, char** argv) {
-	dealer_t			d("tests/config.json");
+	/*
+	dealer_t d("tests/config.json");
+
+	std::vector<message_t> messages;
+	d.load_unsent("rimz_app", messages);
+
+	std::cout << "unsent count: " << messages.size() << std::endl;
+	
+	for (int i = 0; i < messages.size(); ++i) {
+		boost::shared_ptr<response_t> resp = d.send_message(messages[i]);
+		
+		data_container data;
+		while (resp->get(&data)) {
+			std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+		}
+
+		d.remove_unsent(messages[i]);
+	}
+
+	if (messages.size() > 0) {
+		std::cout << "finished with unsent! more...\n";
+	}
+
 	message_path_t		path("rimz_app", "rimz_func");
-	std::string			payload = "response chunk: ";
+	std::string			payload = "received chunk: ";
 
 	message_policy_t	policy = d.policy_for_service("rimz_app");
 	policy.persistent = true;
@@ -141,14 +166,14 @@ main(int argc, char** argv) {
 	sleep(2);
 
 	boost::shared_ptr<response_t> resp = d.send_message(payload.data(), payload.size(), path, policy);
-
 	data_container data;
 	while (resp->get(&data)) {
 		std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 	}
 
 	return EXIT_SUCCESS;
-	
+	*/
+
 	/*
 	dealer_t			d("tests/config.json");
 	message_path_t		path("rimz.*", "rimz_func");

@@ -126,8 +126,6 @@ cached_message_t<DataContainer, MetadataContainer>::commit_to_eblob(boost::share
 	pk.pack(m_metadata.path());
 	pk.pack(m_metadata.policy);
 	pk.pack(m_metadata.uuid);
-	pk.pack(m_metadata.enqued_timestamp);
-	pk.pack(m_metadata.data_size);
 	pk.pack_raw(m_data.size());
 	pk.pack_raw_body((const char*)m_data.data(), m_data.size());
 

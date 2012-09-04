@@ -15,7 +15,7 @@
     GNU Lesser General Public License for more details.
 
     You should have received a copy of the GNU Lesser General Public License
-    along with this program. If not, see <http://www.gnu.org/licenses/>. 
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdexcept>
@@ -38,12 +38,12 @@
 namespace cocaine {
 namespace dealer {
 
-typedef cached_message_t<data_container, request_metadata_t> message_t;
 typedef cached_message_t<persistent_data_container, persistent_request_metadata_t> p_message_t;
 
 dealer_impl_t::dealer_impl_t(const std::string& config_path) :
 	m_messages_cache_size(0),
-	m_is_dead(false)
+	m_is_dead(false),
+	m_messages_ptr(NULL)
 {
 	// create dealer context
 	std::string ctx_error_msg = "could not create dealer context at: " + std::string(BOOST_CURRENT_FUNCTION) + " ";
@@ -77,11 +77,6 @@ dealer_impl_t::dealer_impl_t(const std::string& config_path) :
 		boost::shared_ptr<service_t> service_ptr(new service_t(it->second, context()));
 
 		log(PLOG_INFO, "STARTING NEW SERVICE [%s]", it->second.name.c_str());
-
-		if (config()->message_cache_type() == PERSISTENT) {
-			load_cached_messages_for_service(service_ptr);
-		}
-
 		m_services[it->first] = service_ptr;
 	}
 
@@ -118,6 +113,15 @@ dealer_impl_t::get_service(const std::string& service_alias) {
 	}
 
 	return service_ptr;
+}
+
+boost::shared_ptr<response_t>
+dealer_impl_t::send_message(const message_t& message) {
+	boost::shared_ptr<service_t> service = get_service(message.path.service_alias);
+	return dealer_impl_t::send_message(message.data.data(),
+									   message.data.size(),
+									   message.path,
+									   message.policy);	
 }
 
 boost::shared_ptr<response_t>
@@ -274,10 +278,11 @@ dealer_impl_t::create_message(const void* data,
 							  const message_path_t& path,
 							  const message_policy_t& policy)
 {
-	boost::shared_ptr<message_iface> msg(new message_t(path,
-													   policy,
-													   data,
-													   size));
+	typedef cached_message_t<data_container, request_metadata_t> msg_t;
+	boost::shared_ptr<message_iface> msg(new msg_t(path,
+												   policy,
+												   data,
+												   size));
 
 	if (config()->message_cache_type() == PERSISTENT &&
 		policy.persistent == true)
@@ -290,57 +295,97 @@ dealer_impl_t::create_message(const void* data,
 	return msg;
 }
 
-void
-dealer_impl_t::load_cached_messages_for_service(boost::shared_ptr<service_t>& service) {	
-	// validate input
-	std::string service_name = service->info().name;
-
-	if (!service) {
-		std::string error_str = "object for service with name " + service_name;
-		error_str += " is emty at " + std::string(BOOST_CURRENT_FUNCTION);
-		throw internal_error(error_str);
+size_t
+dealer_impl_t::unsent_count(const std::string& service_alias) {
+	if (config()->message_cache_type() != PERSISTENT) {
+		return 0;
 	}
 
-	// show statistics
-	boost::shared_ptr<eblob_t> blob = this->context()->storage()->get_eblob(service_name);
-	std::string log_str = "SERVICE [%s] is restoring %d messages from persistent cache...";
-	log(PLOG_DEBUG, log_str.c_str(), service_name.c_str(), (int)(blob->items_count() / 2));
-
-	m_restored_service_tmp_ptr = service;
-
-	// restore messages from
-	if (blob->items_count() > 0) {
-		std::cout << "blob->items_count: " << blob->items_count() << std::endl;
-		//eblob_t::iteration_callback_t callback;
-		//callback = boost::bind(&dealer_impl_t::storage_iteration_callback, this, _1, _2, _3);
-		//blob->iterate(callback, 0, 0);
-	}
-
-	m_restored_service_tmp_ptr.reset();
+	boost::shared_ptr<eblob_t> blob = this->context()->storage()->get_eblob(service_alias);
+	return blob->alive_items_count();
 }
 
 void
-dealer_impl_t::storage_iteration_callback(void* data, uint64_t size, int column) {
-	if (!m_restored_service_tmp_ptr) {
-		throw internal_error("service object is empty at: " + std::string(BOOST_CURRENT_FUNCTION));
+dealer_impl_t::load_unsent(const std::string& service_alias,
+						   std::vector<message_t>& messages)
+{
+	if (config()->message_cache_type() != PERSISTENT) {
+		return;
+	}
+
+	boost::shared_ptr<eblob_t> blob = this->context()->storage()->get_eblob(service_alias);
+	int unsent_messages_count = blob->alive_items_count();
+
+	assert(unsent_messages_count >= 0);
+
+	if (unsent_messages_count == 0) {
+		std::string log_str = "no messages to restore for service [%s] from persistent cache...";
+		log(PLOG_DEBUG, log_str, service_alias.c_str());
+		return;
+	}
+
+	std::string log_str = "restoring %d messages for service [%s] from persistent cache...";
+	log(PLOG_DEBUG, log_str, unsent_messages_count, service_alias.c_str());
+
+	m_messages_ptr = &messages;
+
+	eblob_t::iteration_callback_t callback;
+	callback = boost::bind(&dealer_impl_t::storage_iteration_callback, this, _1, _2, _3, _4);
+	blob->iterate(callback, 0, 0);
+
+	m_messages_ptr = NULL;
+}
+
+void
+dealer_impl_t::remove_unsent(const message_t& message) {
+	if (config()->message_cache_type() != PERSISTENT) {
+		return;
+	}
+
+	boost::shared_ptr<eblob_t> blob;
+	blob = this->context()->storage()->get_eblob(message.path.service_alias);
+	blob->remove_all(message.id);
+}
+
+void
+dealer_impl_t::storage_iteration_callback(const std::string& key,
+										  void* data,
+										  uint64_t size,
+										  int column)
+{
+	if (!m_messages_ptr) {
+		return;
 	}
 
 	if (column == 0 && (!data || size == 0)) {
-		throw internal_error("metadata is missing at: " + std::string(BOOST_CURRENT_FUNCTION));	
+		throw internal_error("empty message found in cache: " + std::string(BOOST_CURRENT_FUNCTION));
 	}
 
-	// get service eblob_t
-	std::string service_name = m_restored_service_tmp_ptr->info().name;
-	boost::shared_ptr<eblob_t> eb = context()->storage()->get_eblob(service_name);
+    // init unpacker
+	msgpack::unpacker pac(size);
+	memcpy(pac.buffer(), data, size);
+	pac.buffer_consumed(size);
 
-	p_message_t* msg_ptr = new p_message_t();
-	msg_ptr->mdata_container().load_data(data, size);
-	msg_ptr->mdata_container().set_eblob(eb);
-	msg_ptr->data_container().init_from_message_cache(eb, msg_ptr->mdata_container().uuid, size);
+	message_t msg;
+	msgpack::unpacked result;
 
-	// send message to service
-	boost::shared_ptr<message_iface> msg(msg_ptr);
-	m_restored_service_tmp_ptr->send_message(msg);
+    pac.next(&result);
+    result.get().convert(&msg.path);
+
+	pac.next(&result);
+    result.get().convert(&msg.policy);
+
+    pac.next(&result);
+    result.get().convert(&msg.id);
+
+    std::string msg_data;
+    pac.next(&result);
+    result.get().convert(&msg_data);
+    msg.data.set_data(msg_data.data(), msg_data.size());
+
+    if (m_messages_ptr) {
+    	m_messages_ptr->push_back(msg);
+	}
 }
 
 } // namespace dealer

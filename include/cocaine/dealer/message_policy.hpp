@@ -109,7 +109,6 @@ struct message_policy_t {
     int         max_retries;
 
     MSGPACK_DEFINE(urgent,
-                   persistent,
                    timeout,
                    deadline,
                    max_retries);

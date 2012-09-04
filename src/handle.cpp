@@ -167,11 +167,11 @@ void
 handle_t::remove_from_persistent_storage(const boost::shared_ptr<response_chunk_t>& response) {
 	boost::shared_ptr<message_iface> sent_msg;
 
-	if (m_message_cache->get_sent_message(response->route, response->uuid, sent_msg)) {
+	if (false == m_message_cache->get_sent_message(response->route, response->uuid, sent_msg)) {
 		return;
 	}
 
-	if (!sent_msg->policy().persistent) {
+	if (false == sent_msg->policy().persistent) {
 		return;
 	}
 

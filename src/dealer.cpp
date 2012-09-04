@@ -39,6 +39,11 @@ dealer_t::~dealer_t() {
 }
 
 boost::shared_ptr<response_t>
+dealer_t::send_message(const message_t& message) {
+    return m_impl->send_message(message);   
+}
+
+boost::shared_ptr<response_t>
 dealer_t::send_message(const void* data,
                        size_t size,
                        const message_path_t& path,
@@ -75,6 +80,23 @@ dealer_t::send_messages(const void* data,
 message_policy_t
 dealer_t::policy_for_service(const std::string& service_alias) {
     return m_impl->policy_for_service(service_alias);
+}
+
+size_t
+dealer_t::unsent_count(const std::string& service_alias) {
+    return m_impl->unsent_count(service_alias);
+}
+
+void
+dealer_t::load_unsent(const std::string& service_alias,
+                      std::vector<message_t>& messages)
+{
+    m_impl->load_unsent(service_alias, messages);
+}
+
+void
+dealer_t::remove_unsent(const message_t& message) {
+    m_impl->remove_unsent(message);   
 }
 
 } // namespace dealer

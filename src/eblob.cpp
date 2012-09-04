@@ -33,6 +33,8 @@ eblob_t::eblob_t(const std::string& path,
 				 int sync_interval,
 				 int defrag_timeout,
 				 int thread_pool_size) :
+	m_alive_items_count(0),
+	m_thread_pool_size(thread_pool_size),
 	dealer_object_t(ctx, logging_enabled)
 {
 	create_eblob(path, blob_size, sync_interval, defrag_timeout, thread_pool_size);
@@ -48,7 +50,7 @@ eblob_t::write(const std::string& key,
 			   int column)
 {
 	if (!m_storage.get()) {
-		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
+		std::string error_msg = "empty eblob storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		error_msg += " key: " + key + " column: " + boost::lexical_cast<std::string>(column);
 		throw internal_error(error_msg);
 	}
@@ -70,7 +72,7 @@ eblob_t::write(const std::string& key,
 			   int column)
 {
 	if (!m_storage.get()) {
-		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
+		std::string error_msg = "empty eblob storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		error_msg += " key: " + key + " column: " + boost::lexical_cast<std::string>(column);
 		throw internal_error(error_msg);
 	}
@@ -89,7 +91,7 @@ eblob_t::write(const std::string& key,
 std::string
 eblob_t::read(const std::string& key, int column) {
 	if (!m_storage.get()) {
-		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
+		std::string error_msg = "empty eblob storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		error_msg += " key: " + key + " column: " + boost::lexical_cast<std::string>(column);
 		throw internal_error(error_msg);
 	}
@@ -100,7 +102,7 @@ eblob_t::read(const std::string& key, int column) {
 void
 eblob_t::remove_all(const std::string &key) {
 	if (!m_storage.get()) {
-		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
+		std::string error_msg = "empty eblob storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		error_msg += " key: " + key;
 		throw internal_error(error_msg);
 	}
@@ -113,7 +115,7 @@ eblob_t::remove_all(const std::string &key) {
 void
 eblob_t::remove(const std::string& key, int column) {
 	if (!m_storage.get()) {
-		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
+		std::string error_msg = "empty eblob storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		error_msg += " key: " + key + " column: " + boost::lexical_cast<std::string>(column);
 		throw internal_error(error_msg);
 	}
@@ -124,40 +126,59 @@ eblob_t::remove(const std::string& key, int column) {
 unsigned long long
 eblob_t::items_count() {
 	if (!m_storage.get()) {
-		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
+		std::string error_msg = "empty eblob storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		throw internal_error(error_msg);
 	}
 
 	return m_storage->elements();
 }
 
+unsigned long long
+eblob_t::alive_items_count() {
+	m_alive_items_count = 0;
+
+	if (!m_storage) {
+		std::string error_msg = "empty eblob storage object at " + std::string(BOOST_CURRENT_FUNCTION);
+		throw internal_error(error_msg);
+	}
+
+	m_iteration_callback = boost::bind(&eblob_t::counting_iteration_callback, this, _1, _2, _3, _4);
+
+	eblob_iterate_control ctl;
+    memset(&ctl, 0, sizeof(ctl));
+
+    ctl.priv = this;
+    ctl.iterator_cb.iterator = &eblob_t::iteration_callback;
+    ctl.start_type = 0;
+    ctl.max_type = 0;
+    ctl.thread_num = DEFAULT_THREAD_POOL_SIZE;
+
+    m_storage->iterate(ctl);
+
+    return m_alive_items_count;
+}
+
 void
-eblob_t::iterate(iteration_callback_t iteration_callback,
+eblob_t::iterate(iteration_callback_t callback,
 				 int start_column,
 				 int end_column,
 				 int thread_pool_size)
 {
-	if (!iteration_callback) {
+	if (!callback) {
 		return;
 	}
 
-	m_iteration_callback = iteration_callback;
+	m_iteration_callback = callback;
 
 	eblob_iterate_control ctl;
-    eblob_iterate_callbacks	iterator_cb;
-
-    iterator_cb.iterator = eblob_t::iteration_callback;
-    iterator_cb.iterator_init = NULL;
-    iterator_cb.iterator_free = NULL;
-
     memset(&ctl, 0, sizeof(ctl));
 
-    ctl.flags = EBLOB_ITERATE_FLAGS_ALL;
     ctl.priv = this;
-    ctl.iterator_cb = iterator_cb;
+    ctl.iterator_cb.iterator = &eblob_t::iteration_callback;
     ctl.start_type = start_column;
     ctl.max_type = end_column;
     ctl.thread_num = thread_pool_size;
+
     m_storage->iterate(ctl);
 }
 
@@ -170,7 +191,7 @@ eblob_t::create_eblob(const std::string& path,
 {
 	m_path = path;
 
-	// create eblob_t logger
+	// create eblob logger
 	m_eblob_logger.reset(new ioremap::eblob::eblob_logger("/dev/stdout", 0));
 
 	// create config
@@ -181,32 +202,45 @@ eblob_t::create_eblob(const std::string& path,
     cfg.sync = sync_interval;
     cfg.blob_size = blob_size;
     cfg.defrag_timeout = defrag_timeout;
-    cfg.iterate_threads = thread_pool_size;
+    cfg.iterate_threads = 1;
 
-    // create eblob_t
+    // create eblob
     m_storage.reset(new ioremap::eblob::eblob(&cfg));
 
-	log("eblob_t at path: %s created.", m_path.c_str());
+	log("eblob at path: %s created.", m_path.c_str());
 }
 
 int
-eblob_t::iteration_callback(__attribute__ ((unused)) eblob_disk_control* dc,
+eblob_t::iteration_callback(eblob_disk_control* dc,
 							eblob_ram_control* rc,
 							void* data,
 							void* priv,
 							__attribute__ ((unused)) void* thread_priv)
 {
 	eblob_t* eb = reinterpret_cast<eblob_t*>(priv);
-	eb->iteration_callback_instance(data, rc->size, rc->type);
+	eb->iteration_callback_instance((char*)dc->key.id, data, rc->size, rc->type);
 
 	return 0;
 }
 
 void
-eblob_t::iteration_callback_instance(void* data, uint64_t size, int column) {
+eblob_t::iteration_callback_instance(const std::string& key,
+									 void* data,
+									 uint64_t size,
+									 int column)
+{
 	if (m_iteration_callback) {
-		m_iteration_callback(data, size, column);
+		m_iteration_callback(key, data, size, column);
 	}
+}
+
+void
+eblob_t::counting_iteration_callback(const std::string& key,
+									 void* data,
+									 uint64_t size,
+									 int column)
+{
+	++m_alive_items_count;
 }
 
 } // namespace dealer

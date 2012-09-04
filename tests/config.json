@@ -4,11 +4,11 @@
 	"logger" :
 	{
 		"type" : "STDOUT_LOGGER",
-		//"flags" : "PLOG_INTRO | PLOG_INFO | PLOG_ERROR"
+		"flags" : "PLOG_INTRO | PLOG_INFO | PLOG_ERROR"
 
 		//"type" : "FILE_LOGGER",
 		//"file" : "/home/rimz/dealer.log",
-		"flags" : "PLOG_ALL | PLOG_INTRO"
+		//"flags" : "PLOG_ALL | PLOG_INTRO"
 	},
 
 	"persistent_storage" :
@@ -24,6 +24,21 @@
 	{
     	"rimz_app" : {
 			"app" : "rimz_app@1",
+			"autodiscovery" : {
+				"type" : "FILE",
+				"source" : "tests/hosts"
+			},
+			"policy" : {
+				"urgent" : 0,
+				"deadline" : 5.0,
+				"timeout" : 3.000,
+				"max_retries" : 13
+			}
+			//"batching_size" : 100,
+			//"ack_timeout" : 100
+		},
+    	"dummy" : {
+			"app" : "dummy",
 			"autodiscovery" : {
 				"type" : "FILE",
 				"source" : "tests/hosts"

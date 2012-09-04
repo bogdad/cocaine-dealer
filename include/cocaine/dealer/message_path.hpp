@@ -35,11 +35,11 @@ struct message_path_t {
     message_path_t(const std::string& service_alias_,
                  const std::string& handle_name_) :
         service_alias(service_alias_),
-        handle_name(handle_name_) {};
+        handle_name(handle_name_) {}
 
     message_path_t(const message_path_t& path) :
         service_alias(path.service_alias),
-        handle_name(path.handle_name) {};
+        handle_name(path.handle_name) {}
 
     message_path_t& operator = (const message_path_t& rhs) {
         if (this == &rhs) {

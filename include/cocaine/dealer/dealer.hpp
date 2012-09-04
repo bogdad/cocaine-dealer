@@ -26,6 +26,7 @@
 #include <boost/utility.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <cocaine/dealer/message.hpp>
 #include <cocaine/dealer/response.hpp>
 #include <cocaine/dealer/utils/data_container.hpp>
 #include <cocaine/dealer/message_path.hpp>
@@ -42,6 +43,9 @@ public:
 public:
 	explicit dealer_t(const std::string& config_path = "");
 	virtual ~dealer_t();
+
+	response_ptr_t
+	send_message(const message_t& message);
 
 	response_ptr_t
 	send_message(const void* data,
@@ -83,6 +87,11 @@ public:
 		msgpack::pack(buffer, object);
 		return send_message(reinterpret_cast<const void*>(buffer.data()), buffer.size(), path);
 	}
+
+	size_t unsent_count(const std::string& service_alias);
+	void remove_unsent(const message_t& message);
+	void load_unsent(const std::string& service_alias,
+					 std::vector<message_t>& messages);
 
 	message_policy_t policy_for_service(const std::string& service_alias);
 	

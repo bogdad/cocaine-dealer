@@ -42,7 +42,7 @@ namespace dealer {
 
 class eblob_t : public dealer_object_t {
 public:
-	typedef boost::function<void(void*, uint64_t, int)> iteration_callback_t;
+	typedef boost::function<void(const std::string&, void*, uint64_t, int)> iteration_callback_t;
 
 	eblob_t();
 
@@ -64,6 +64,7 @@ public:
 	void remove(const std::string& key, int column = EBLOB_TYPE_DATA);
 
 	unsigned long long items_count();
+	unsigned long long alive_items_count();
 
 	void iterate(iteration_callback_t iteration_callback,
 				 int start_column = 0,
@@ -71,10 +72,10 @@ public:
 				 int thread_pool_size = DEFAULT_THREAD_POOL_SIZE);
 
 public:
-	static const uint64_t DEFAULT_BLOB_SIZE = 2147483648; // 2 gb
-	static const int DEFAULT_SYNC_INTERVAL = 2; 	// secs
-	static const int DEFAULT_DEFRAG_TIMEOUT = -1; 	// secs
-	static const int DEFAULT_THREAD_POOL_SIZE = 1;
+	static const uint64_t DEFAULT_BLOB_SIZE = 2147483648;	// 2 gb
+	static const int DEFAULT_SYNC_INTERVAL = 2; 			// secs
+	static const int DEFAULT_DEFRAG_TIMEOUT = -1; 			// secs
+	static const int DEFAULT_THREAD_POOL_SIZE = 4;
 
 private:
 	void create_eblob(const std::string& path,
@@ -84,16 +85,19 @@ private:
 		  			  int thread_pool_size);
 
 	static int iteration_callback(eblob_disk_control* dc,
-								  eblob_ram_control* rc,
-								  void* data,
-								  void* priv,
-								  void* thread_priv);
+								 eblob_ram_control* rc,
+								 void* data,
+								 void* priv,
+								 void* thread_priv);
 
-	void iteration_callback_instance(void* data, uint64_t size, int column);
+	void iteration_callback_instance(const std::string& key, void* data, uint64_t size, int column);
+	void counting_iteration_callback(const std::string& key, void* data, uint64_t size, int column);
 
 private:
 	std::string				m_path;
 	iteration_callback_t	m_iteration_callback;
+	int 					m_alive_items_count;
+	int						m_thread_pool_size;
 
 	boost::shared_ptr<ioremap::eblob::eblob>			m_storage;
 	boost::shared_ptr<ioremap::eblob::eblob_logger>		m_eblob_logger;
