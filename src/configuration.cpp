@@ -42,6 +42,7 @@ configuration_t::configuration_t() :
 	m_eblob_blob_size(defaults_t::eblob_blob_size),
 	m_eblob_sync_interval(defaults_t::eblob_sync_interval),
 	m_eblob_thread_pool_size(defaults_t::eblob_thread_pool_size),
+	m_eblob_defrag_timeout(defaults_t::eblob_defrag_timeout),
 	m_statistics_enabled(false),
 	m_remote_statistics_enabled(false),
 	m_remote_statistics_port(defaults_t::statistics_port)
@@ -59,6 +60,7 @@ configuration_t::configuration_t(const std::string& path) :
 	m_eblob_blob_size(defaults_t::eblob_blob_size),
 	m_eblob_sync_interval(defaults_t::eblob_sync_interval),
 	m_eblob_thread_pool_size(defaults_t::eblob_thread_pool_size),
+	m_eblob_defrag_timeout(defaults_t::eblob_defrag_timeout),
 	m_statistics_enabled(false),
 	m_remote_statistics_enabled(false),
 	m_remote_statistics_port(defaults_t::statistics_port)
@@ -67,7 +69,6 @@ configuration_t::configuration_t(const std::string& path) :
 }
 
 configuration_t::~configuration_t() {
-	
 }
 
 void
@@ -174,6 +175,7 @@ configuration_t::parse_persistant_storage_settings(const Json::Value& config_val
 
 	m_eblob_sync_interval = persistent_storage_value.get("eblob_sync_interval", defaults_t::eblob_sync_interval).asInt();
 	m_eblob_thread_pool_size = persistent_storage_value.get("thread_pool_size", defaults_t::eblob_thread_pool_size).asInt();
+	m_eblob_defrag_timeout = persistent_storage_value.get("defrag_timeout", defaults_t::eblob_defrag_timeout).asInt();
 }
 
 void
@@ -270,6 +272,7 @@ configuration_t::parse_services_settings(const Json::Value& config_value) {
 		const Json::Value mpolicy = service_data["policy"];
 		if (mpolicy.isObject()) {
 			si.policy.urgent = mpolicy.get("urgent", si.policy.urgent).asBool();
+			si.policy.persistent = mpolicy.get("persistent", si.policy.persistent).asBool();
 			si.policy.timeout = mpolicy.get("timeout", si.policy.timeout).asFloat();
 			si.policy.deadline = mpolicy.get("deadline", si.policy.deadline).asFloat();
 			si.policy.max_retries = mpolicy.get("max_retries", si.policy.max_retries).asInt();
@@ -419,7 +422,12 @@ configuration_t::eblob_sync_interval() const {
 
 int
 configuration_t::eblob_thread_pool_size() const {
-	return m_eblob_thread_pool_size;	
+	return m_eblob_thread_pool_size;
+}
+
+int
+configuration_t::eblob_defrag_timeout() const {
+	return m_eblob_defrag_timeout;
 }
 
 bool
@@ -465,7 +473,11 @@ configuration_t::service_info_by_name(const std::string& name) const {
 	return false;
 }
 
-std::ostream& operator << (std::ostream& out, configuration_t& c) {
+std::string
+configuration_t::as_string() const {
+	const configuration_t& c = *this;
+	std::stringstream out;
+
 	out << "---------- config path: " << c.m_path << " ----------\n";
 
 	// basic
@@ -512,15 +524,17 @@ std::ostream& operator << (std::ostream& out, configuration_t& c) {
  	out << "message cache\n";
 
  	if (c.m_message_cache_type == RAM_ONLY) {
- 		out << "\ttype: RAM_ONLY\n\n";
+ 		out << "\tuse persistance: no\n\n";
  	}
  	else if (c.m_message_cache_type == PERSISTENT) {
- 		out << "\ttype: PERSISTENT\n\n";
+ 		out << "\tuse persistance: yes\n\n";
 
  		// persistant storage
  		out << "persistant storage\n";
 		out << "\teblob path: " << c.m_eblob_path << "\n";
- 		out << "\teblob sync interval: " << c.m_eblob_sync_interval << "\n\n";
+ 		out << "\teblob sync interval: " << c.m_eblob_sync_interval << "\n";
+ 		out << "\teblob thread pool size: " << c.m_eblob_thread_pool_size << "\n";
+ 		out << "\teblob defrag timeout: " << c.m_eblob_defrag_timeout << "\n\n";
  	}
 
 	// services
@@ -570,8 +584,13 @@ std::ostream& operator << (std::ostream& out, configuration_t& c) {
 	out << "\tremote port: " << m_remote_statistics_port << "\n\n";
 	*/
 
-	return out;
+	return out.str();
 }
+
+std::ostream& operator << (std::ostream& out, configuration_t& c) {
+	return out << c.as_string();
+}
+
 
 } // namespace dealer
 } // namespace cocaine

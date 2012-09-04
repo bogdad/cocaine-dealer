@@ -57,7 +57,9 @@ dealer_impl_t::dealer_impl_t(const std::string& config_path) :
     }
 
 	try {
-		boost::shared_ptr<cocaine::dealer::context_t> ctx(new cocaine::dealer::context_t(config_path_tmp.c_str()));
+		boost::shared_ptr<cocaine::dealer::context_t> ctx;
+		ctx.reset(new cocaine::dealer::context_t(config_path_tmp));
+		ctx->create_storage();
 		set_context(ctx);
 	}
 	catch (const std::exception& ex) {
@@ -268,34 +270,21 @@ dealer_impl_t::service_hosts_pinged_callback(const service_info_t& service_info,
 
 boost::shared_ptr<message_iface>
 dealer_impl_t::create_message(const void* data,
-							size_t size,
-							const message_path_t& path,
-							const message_policy_t& policy)
+							  size_t size,
+							  const message_path_t& path,
+							  const message_policy_t& policy)
 {
-	boost::shared_ptr<message_iface> msg;
+	boost::shared_ptr<message_iface> msg(new message_t(path,
+													   policy,
+													   data,
+													   size));
 
-	if (config()->message_cache_type() == RAM_ONLY) {
-		msg.reset(new message_t(path, policy, data, size));
-		//logger()->log(PLOG_DEBUG, "created message, size: %d bytes, uuid: %s", size, msg->uuid().c_str());
-	}
-	else if (config()->message_cache_type() == PERSISTENT) {
-		p_message_t* msg_ptr = new p_message_t(path, policy, data, size);
-		//logger()->log(PLOG_DEBUG, "created message, size: %d bytes, uuid: %s", size, msg_ptr->uuid().c_str());
-
+	if (config()->message_cache_type() == PERSISTENT &&
+		policy.persistent == true)
+	{
 		boost::shared_ptr<eblob_t> eb = context()->storage()->get_eblob(path.service_alias);
-		
-		// init metadata and write to storage
-		msg_ptr->mdata_container().set_eblob(eb);
-		msg_ptr->mdata_container().commit_data();
-		msg_ptr->mdata_container().data_size = size;
-
-		// init data and write to storage
-		msg_ptr->data_container().set_eblob(eb, msg_ptr->uuid());
-		msg_ptr->data_container().commit_data();
-
-		log(PLOG_DEBUG, "commited message with uuid: " + msg_ptr->uuid() + " to persistent storage.");
-
-		msg.reset(msg_ptr);
+		msg->commit_to_eblob(eb);
+		log(PLOG_DEBUG, "commited message with uuid: " + msg->uuid() + " to persistent storage.");
 	}
 
 	return msg;
@@ -321,9 +310,10 @@ dealer_impl_t::load_cached_messages_for_service(boost::shared_ptr<service_t>& se
 
 	// restore messages from
 	if (blob->items_count() > 0) {
-		eblob_t::iteration_callback_t callback;
-		callback = boost::bind(&dealer_impl_t::storage_iteration_callback, this, _1, _2, _3);
-		blob->iterate(callback, 0, 0);
+		std::cout << "blob->items_count: " << blob->items_count() << std::endl;
+		//eblob_t::iteration_callback_t callback;
+		//callback = boost::bind(&dealer_impl_t::storage_iteration_callback, this, _1, _2, _3);
+		//blob->iterate(callback, 0, 0);
 	}
 
 	m_restored_service_tmp_ptr.reset();

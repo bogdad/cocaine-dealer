@@ -26,6 +26,7 @@
 #include "cocaine/dealer/utils/error.hpp"
 #include "cocaine/dealer/utils/uuid.hpp"
 #include "cocaine/dealer/utils/progress_timer.hpp"
+#include "cocaine/dealer/storage/eblob_storage.hpp"
 
 namespace cocaine {
 namespace dealer {
@@ -163,6 +164,23 @@ handle_t::dispatch_messages() {
 }
 
 void
+handle_t::remove_from_persistent_storage(const boost::shared_ptr<response_chunk_t>& response) {
+	boost::shared_ptr<message_iface> sent_msg;
+
+	if (m_message_cache->get_sent_message(response->route, response->uuid, sent_msg)) {
+		return;
+	}
+
+	if (!sent_msg->policy().persistent) {
+		return;
+	}
+
+	// remove message from eblob
+	boost::shared_ptr<eblob_t> eb = context()->storage()->get_eblob(sent_msg->path().service_alias);
+	eb->remove_all(response->uuid);
+}
+
+void
 handle_t::dispatch_next_available_response(balancer_t& balancer) {
 	boost::shared_ptr<response_chunk_t> response;
 
@@ -170,7 +188,6 @@ handle_t::dispatch_next_available_response(balancer_t& balancer) {
 		return;
 	}
 
-	bool resheduled = false;
 	boost::shared_ptr<message_iface> sent_msg;
 
 	switch (response->rpc_code) {
@@ -186,27 +203,27 @@ handle_t::dispatch_next_available_response(balancer_t& balancer) {
 
 		case SERVER_RPC_MESSAGE_CHOKE:
 			enqueue_response(response);
+
+			remove_from_persistent_storage(response);
 			m_message_cache->remove_message_from_cache(response->route, response->uuid);
 		break;
 		
 		case SERVER_RPC_MESSAGE_ERROR: {
-			if (response->error_code != resource_error) {
-				break;
-			}
-
 			// handle resource error
-			if (m_message_cache->reshedule_message(response->route, response->uuid)) {
-				resheduled = true;
-
-				if (log_flag_enabled(PLOG_WARNING)) {
-					std::string message_str = "resheduled message with uuid: " + response->uuid;
-					message_str += " from " + description() + ", reason: error received, error code: %d";
-					message_str += ", error message: " + response->error_message;
-					log(PLOG_WARNING, message_str, response->error_code);
+			if (response->error_code == resource_error) {
+				if (m_message_cache->reshedule_message(response->route, response->uuid)) {
+					if (log_flag_enabled(PLOG_WARNING)) {
+						std::string message_str = "resheduled message with uuid: " + response->uuid;
+						message_str += " from " + description() + ", reason: error received, error code: %d";
+						message_str += ", error message: " + response->error_message;
+						log(PLOG_WARNING, message_str, response->error_code);
+					}
 				}
 			}
 			else {
 				enqueue_response(response);
+
+				remove_from_persistent_storage(response);
 				m_message_cache->remove_message_from_cache(response->route, response->uuid);
 
 				if (log_flag_enabled(PLOG_ERROR)) {
@@ -221,10 +238,12 @@ handle_t::dispatch_next_available_response(balancer_t& balancer) {
 
 		default: {
 			enqueue_response(response);
+
+			remove_from_persistent_storage(response);
 			m_message_cache->remove_message_from_cache(response->route, response->uuid);
 
 			if (log_flag_enabled(PLOG_ERROR)) {
-				std::string message_str = "error received for message with uuid: " + response->uuid;
+				std::string message_str = "unknown RPC code received for message with uuid: " + response->uuid;
 				message_str += " from " + description() + ", code: %d";
 				message_str += ", error message: " + response->error_message;
 				log(PLOG_ERROR, message_str, response->error_code);

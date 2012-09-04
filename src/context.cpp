@@ -67,33 +67,47 @@ context_t::context_t(const std::string& config_path) {
 
 	// create statistics collector
 	//m_stats.reset(new statistics_collector(m_config, m_zmq_context, logger()));
-
-	// create eblob_t storage
-	if (config()->message_cache_type() == PERSISTENT) {
-		logger()->log(PLOG_DEBUG, "loading cache from eblobs...");
-		std::string st_path = config()->eblob_path();
-		int64_t st_blob_size = config()->eblob_blob_size();
-		int st_sync = config()->eblob_sync_interval();
-		
-		// create storage
-		eblob_storage_t* storage_ptr = new eblob_storage_t(st_path,
-													   boost::shared_ptr<context_t>(this),
-													   true,
-													   st_blob_size,
-													   st_sync);
-		m_storage.reset(storage_ptr);
-
-		// create eblob_t for each service
-		const configuration_t::services_list_t& services_info_list = config()->services_list();
-		configuration_t::services_list_t::const_iterator it = services_info_list.begin();
-		for (; it != services_info_list.end(); ++it) {
-			m_storage->open_eblob(it->second.name);
-		}
-	}
 }
 
 context_t::~context_t() {
 	m_zmq_context.reset();
+	m_storage.reset();
+}
+
+boost::shared_ptr<context_t>
+context_t::shared_pointer() {
+    return shared_from_this();
+}
+
+void
+context_t::create_storage() {
+	// create eblob_t storage
+	if (config()->message_cache_type() != PERSISTENT) {
+		return;
+	}
+
+	logger()->log(PLOG_DEBUG, "loading cache from eblobs...");
+	std::string st_path = config()->eblob_path();
+	int64_t st_blob_size = config()->eblob_blob_size();
+	int st_sync = config()->eblob_sync_interval();
+	int thread_pool_size = config()->eblob_thread_pool_size();
+	int defrag_timeout = config()->eblob_defrag_timeout();
+
+	// create storage
+	m_storage.reset(new eblob_storage_t(st_path,
+										shared_pointer(),
+										true,
+										st_blob_size,
+										st_sync,
+										thread_pool_size,
+										defrag_timeout));
+
+	// create eblob_t for each service
+	const configuration_t::services_list_t& services_info_list = config()->services_list();
+	configuration_t::services_list_t::const_iterator it = services_info_list.begin();
+	for (; it != services_info_list.end(); ++it) {
+		m_storage->open_eblob(it->second.name);
+	}
 }
 
 boost::shared_ptr<configuration_t>

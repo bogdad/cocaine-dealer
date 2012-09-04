@@ -26,6 +26,7 @@
 #include "cocaine/dealer/utils/time_value.hpp"
 #include "cocaine/dealer/message_path.hpp"
 #include "cocaine/dealer/message_policy.hpp"
+#include "cocaine/dealer/storage/eblob.hpp"
 
 namespace cocaine {
 namespace dealer {
@@ -64,6 +65,8 @@ public:
 	virtual void mark_as_sent(bool value) = 0;
 
 	virtual bool is_expired() = 0;
+
+	virtual void commit_to_eblob(boost::shared_ptr<eblob_t>& blob) = 0;
 
 	virtual message_iface& operator = (const message_iface& rhs) = 0;
 	virtual bool operator == (const message_iface& rhs) const = 0;

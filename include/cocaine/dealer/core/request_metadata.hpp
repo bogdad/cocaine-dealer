@@ -52,8 +52,8 @@ struct request_metadata_t {
 		s << "service: "<< path().service_alias << ", handle: ";
 		s << path().handle_name + "\n";
         s << "uuid: " << uuid << "\n";
-        s << "policy [send to all hosts]: " << policy.send_to_all_hosts << "\n";
         s << "policy [urgent]: " << policy.urgent << "\n";
+        s << "policy [persistent]: " << policy.persistent << "\n";
         s << "policy [timeout]: " << policy.timeout << "\n";
         s << "policy [deadline]: " << policy.deadline << "\n";
         s << "policy [max retries]: " << policy.max_retries << "\n";
@@ -70,10 +70,10 @@ struct request_metadata_t {
 		path_ = path;
 	}
 
-	std::string		uuid;
+	std::string			uuid;
 	message_policy_t	policy;
-	std::string		destination_endpoint;
-	uint64_t		data_size;
+	std::string			destination_endpoint;
+	uint64_t			data_size;
 
 	time_value	enqued_timestamp;
 	time_value	sent_timestamp;

@@ -27,22 +27,26 @@ eblob_t::eblob_t() {
 }
 
 eblob_t::eblob_t(const std::string& path,
-			 const boost::shared_ptr<context_t>& ctx,
-			 bool logging_enabled,
-			 uint64_t blob_size,
-			 int sync_interval,
-			 int defrag_timeout) :
+				 const boost::shared_ptr<context_t>& ctx,
+				 bool logging_enabled,
+				 uint64_t blob_size,
+				 int sync_interval,
+				 int defrag_timeout,
+				 int thread_pool_size) :
 	dealer_object_t(ctx, logging_enabled)
 {
-	create_eblob(path, blob_size, sync_interval, defrag_timeout);
+	create_eblob(path, blob_size, sync_interval, defrag_timeout, thread_pool_size);
 }
 
 eblob_t::~eblob_t() {
-	log("eblob_t at path: %s destroyed.", m_path.c_str());
+	log("eblob at path: %s closed.", m_path.c_str());
 }
 
 void
-eblob_t::write(const std::string& key, const std::string& value, int column) {
+eblob_t::write(const std::string& key,
+			   const std::string& value,
+			   int column)
+{
 	if (!m_storage.get()) {
 		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		error_msg += " key: " + key + " column: " + boost::lexical_cast<std::string>(column);
@@ -60,7 +64,11 @@ eblob_t::write(const std::string& key, const std::string& value, int column) {
 }
 
 void
-eblob_t::write(const std::string& key, void* data, size_t size, int column) {
+eblob_t::write(const std::string& key,
+			   void* data,
+			   size_t size,
+			   int column)
+{
 	if (!m_storage.get()) {
 		std::string error_msg = "empty eblob_t storage object at " + std::string(BOOST_CURRENT_FUNCTION);
 		error_msg += " key: " + key + " column: " + boost::lexical_cast<std::string>(column);
@@ -124,7 +132,11 @@ eblob_t::items_count() {
 }
 
 void
-eblob_t::iterate(iteration_callback_t iteration_callback, int start_column, int end_column) {
+eblob_t::iterate(iteration_callback_t iteration_callback,
+				 int start_column,
+				 int end_column,
+				 int thread_pool_size)
+{
 	if (!iteration_callback) {
 		return;
 	}
@@ -145,15 +157,16 @@ eblob_t::iterate(iteration_callback_t iteration_callback, int start_column, int 
     ctl.iterator_cb = iterator_cb;
     ctl.start_type = start_column;
     ctl.max_type = end_column;
-    ctl.thread_num = 1;
+    ctl.thread_num = thread_pool_size;
     m_storage->iterate(ctl);
 }
 
 void
 eblob_t::create_eblob(const std::string& path,
-					uint64_t blob_size,
-					int sync_interval,
-					int defrag_timeout)
+					  uint64_t blob_size,
+					  int sync_interval,
+					  int defrag_timeout,
+					  int thread_pool_size)
 {
 	m_path = path;
 
@@ -168,7 +181,7 @@ eblob_t::create_eblob(const std::string& path,
     cfg.sync = sync_interval;
     cfg.blob_size = blob_size;
     cfg.defrag_timeout = defrag_timeout;
-    cfg.iterate_threads = 1;
+    cfg.iterate_threads = thread_pool_size;
 
     // create eblob_t
     m_storage.reset(new ioremap::eblob::eblob(&cfg));
@@ -178,10 +191,10 @@ eblob_t::create_eblob(const std::string& path,
 
 int
 eblob_t::iteration_callback(__attribute__ ((unused)) eblob_disk_control* dc,
-						  eblob_ram_control* rc,
-						  void* data,
-						  void* priv,
-						  __attribute__ ((unused)) void* thread_priv)
+							eblob_ram_control* rc,
+							void* data,
+							void* priv,
+							__attribute__ ((unused)) void* thread_priv)
 {
 	eblob_t* eb = reinterpret_cast<eblob_t*>(priv);
 	eb->iteration_callback_instance(data, rc->size, rc->type);

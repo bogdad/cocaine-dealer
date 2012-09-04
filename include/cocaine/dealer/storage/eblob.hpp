@@ -47,11 +47,12 @@ public:
 	eblob_t();
 
 	eblob_t(const std::string& path,
-		  const boost::shared_ptr<context_t>& ctx,
-		  bool logging_enabled = true,
-		  uint64_t blob_size = DEFAULT_BLOB_SIZE,
-		  int sync_interval = DEFAULT_SYNC_INTERVAL,
-		  int defrag_timeout = DEFAULT_DEFRAG_TIMEOUT);
+			const boost::shared_ptr<context_t>& ctx,
+			bool logging_enabled = true,
+			uint64_t blob_size = DEFAULT_BLOB_SIZE,
+			int sync_interval = DEFAULT_SYNC_INTERVAL,
+			int defrag_timeout = DEFAULT_DEFRAG_TIMEOUT,
+			int thread_pool_size = DEFAULT_THREAD_POOL_SIZE);
 
 	virtual	~eblob_t();
 
@@ -64,18 +65,23 @@ public:
 
 	unsigned long long items_count();
 
-	void iterate(iteration_callback_t iteration_callback, int start_column = 0, int end_column = 99999);
+	void iterate(iteration_callback_t iteration_callback,
+				 int start_column = 0,
+				 int end_column = 99999,
+				 int thread_pool_size = DEFAULT_THREAD_POOL_SIZE);
 
 public:
 	static const uint64_t DEFAULT_BLOB_SIZE = 2147483648; // 2 gb
-	static const int DEFAULT_SYNC_INTERVAL = 2; // secs
-	static const int DEFAULT_DEFRAG_TIMEOUT = -1; // secs
+	static const int DEFAULT_SYNC_INTERVAL = 2; 	// secs
+	static const int DEFAULT_DEFRAG_TIMEOUT = -1; 	// secs
+	static const int DEFAULT_THREAD_POOL_SIZE = 1;
 
 private:
 	void create_eblob(const std::string& path,
 		  			  uint64_t blob_size,
 		  			  int sync_interval,
-		  			  int defrag_timeout);
+		  			  int defrag_timeout,
+		  			  int thread_pool_size);
 
 	static int iteration_callback(eblob_disk_control* dc,
 								  eblob_ram_control* rc,

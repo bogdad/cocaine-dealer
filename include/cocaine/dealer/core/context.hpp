@@ -29,20 +29,25 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "cocaine/dealer/core/configuration.hpp"
-//#include "cocaine/dealer/core/statistics_collector.hpp"
 #include "cocaine/dealer/utils/smart_logger.hpp"
+//#include "cocaine/dealer/core/statistics_collector.hpp"
 
 namespace cocaine {
 namespace dealer {
 
 class eblob_storage_t;
 
-class context_t : private boost::noncopyable {
+class context_t : private boost::noncopyable, public boost::enable_shared_from_this<context_t> {
 public:
 	explicit context_t(const std::string& config_path);
 	virtual ~context_t();
+
+    void create_storage();
+
+    boost::shared_ptr<context_t> shared_pointer();
 
 	boost::shared_ptr<base_logger_t> logger();
 	boost::shared_ptr<configuration_t> config();

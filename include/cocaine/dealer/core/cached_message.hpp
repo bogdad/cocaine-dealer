@@ -31,6 +31,9 @@
 #include <boost/current_function.hpp>
 
 #include <uuid/uuid.h>
+
+#include <msgpack.hpp>
+
 #include "json/json.h"
 
 #include "cocaine/dealer/core/message_iface.hpp"
@@ -95,6 +98,8 @@ public:
 
 	void remove_from_persistent_cache();
 
+	void commit_to_eblob(boost::shared_ptr<eblob_t>& blob);
+
 private:
 	void init();
 	
@@ -111,6 +116,23 @@ cached_message_t<DataContainer, MetadataContainer>::cached_message_t() {
 template<typename DataContainer, typename MetadataContainer>
 cached_message_t<DataContainer, MetadataContainer>::cached_message_t(const cached_message_t& message) {
 	*this = message;
+}
+
+template<typename DataContainer, typename MetadataContainer> void
+cached_message_t<DataContainer, MetadataContainer>::commit_to_eblob(boost::shared_ptr<eblob_t>& blob) {
+	// serialize all metadata
+	msgpack::sbuffer buffer;
+	msgpack::packer<msgpack::sbuffer> pk(&buffer);
+	pk.pack(m_metadata.path());
+	pk.pack(m_metadata.policy);
+	pk.pack(m_metadata.uuid);
+	pk.pack(m_metadata.enqued_timestamp);
+	pk.pack(m_metadata.data_size);
+	pk.pack_raw(m_data.size());
+	pk.pack_raw_body((const char*)m_data.data(), m_data.size());
+
+	// write to eblob_t with uuid as key
+	blob->write(m_metadata.uuid, buffer.data(), buffer.size(), 0);
 }
 
 template<typename DataContainer, typename MetadataContainer>

@@ -34,23 +34,22 @@ namespace dealer {
 
 struct message_policy_t {
     message_policy_t() :
-        send_to_all_hosts(false),
         urgent(false),
+        persistent(false),
         timeout(0.0f),
         deadline(0.0f),
         max_retries(0) {}
 
-    message_policy_t(bool send_to_all_hosts,
-                   bool urgent,
-                   float mailboxed,
-                   float timeout,
-                   float deadline,
-                   int max_retries) :
-        send_to_all_hosts(send_to_all_hosts),
-        urgent(urgent),
-        timeout(timeout),
-        deadline(deadline),
-        max_retries(max_retries) {}
+    message_policy_t(bool urgent_,
+                     bool persistent_,
+                     float timeout_,
+                     float deadline_,
+                     int max_retries_) :
+        urgent(urgent_),
+        persistent(persistent_),
+        timeout(timeout_),
+        deadline(deadline_),
+        max_retries(max_retries_) {}
 
     message_policy_t(const message_policy_t& mp) {
         *this = mp;
@@ -61,8 +60,8 @@ struct message_policy_t {
             return *this;
         }
 
-        send_to_all_hosts = rhs.send_to_all_hosts;
         urgent = rhs.urgent;
+        persistent = rhs.persistent;
         timeout = rhs.timeout;
         deadline = rhs.deadline;
         max_retries = rhs.max_retries;
@@ -71,10 +70,11 @@ struct message_policy_t {
     }
 
     bool operator == (const message_policy_t& rhs) const {
-        return (send_to_all_hosts == rhs.send_to_all_hosts &&
-                urgent == rhs.urgent &&
-                timeout == rhs.timeout &&
-                deadline == rhs.deadline);
+        return (urgent      == rhs.urgent &&
+                persistent  == rhs.persistent &&
+                timeout     == rhs.timeout &&
+                deadline    == rhs.deadline &&
+                max_retries == rhs.max_retries);
     }
 
     bool operator != (const message_policy_t& rhs) const {
@@ -94,6 +94,7 @@ struct message_policy_t {
 
         sstream << std::boolalpha << std::fixed << std::setprecision(6);
         sstream << "urgent: " << urgent << ", ";
+        sstream << "persistent: " << persistent << ", ";
         sstream << "timeout: " << timeout << ", ";
         sstream << "deadline: " << deadline << ", ";
         sstream << "max_retries: " << max_retries;
@@ -101,14 +102,14 @@ struct message_policy_t {
         return sstream.str();
     }
 
-    bool send_to_all_hosts;
-    bool urgent;
-    double timeout;
-    double deadline;
-    int max_retries;
+    bool        urgent;
+    bool        persistent;
+    double      timeout;
+    double      deadline;
+    int         max_retries;
 
-    MSGPACK_DEFINE(send_to_all_hosts,
-                   urgent,
+    MSGPACK_DEFINE(urgent,
+                   persistent,
                    timeout,
                    deadline,
                    max_retries);

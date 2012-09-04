@@ -42,15 +42,17 @@ namespace dealer {
 class eblob_storage_t : private boost::noncopyable, public dealer_object_t {
 public:
 	eblob_storage_t(std::string path,
-				  const boost::shared_ptr<context_t>& ctx,
-				  bool logging_enabled = true,
-				  uint64_t blob_size = eblob_t::DEFAULT_BLOB_SIZE,
-				  int sync_interval = eblob_t::DEFAULT_SYNC_INTERVAL,
-				  int defrag_timeout = eblob_t::DEFAULT_DEFRAG_TIMEOUT) :
+					const boost::shared_ptr<context_t>& ctx,
+					bool logging_enabled = true,
+					uint64_t blob_size = eblob_t::DEFAULT_BLOB_SIZE,
+					int sync_interval = eblob_t::DEFAULT_SYNC_INTERVAL,
+					int thread_pool_size = eblob_t::DEFAULT_THREAD_POOL_SIZE,
+					int defrag_timeout = eblob_t::DEFAULT_DEFRAG_TIMEOUT) :
 		dealer_object_t(ctx, logging_enabled),
 		m_path(path),
 		m_blob_size(blob_size),
 		m_sync_interval(sync_interval),
+		m_thread_pool_size(thread_pool_size),
 		m_defrag_timeout(defrag_timeout)
 	{
 		// add slash to path if missing
@@ -75,7 +77,8 @@ public:
 												  true,
 												  m_blob_size,
 												  m_sync_interval,
-												  m_defrag_timeout));
+												  m_defrag_timeout,
+												  m_thread_pool_size));
 
 		m_eblobs.insert(std::make_pair(nm, eb));
 	}
@@ -115,6 +118,7 @@ private:
 	uint64_t	m_blob_size;
 	int 		m_sync_interval;
 	int			m_defrag_timeout;
+	int			m_thread_pool_size;
 };
 
 } // namespace dealer
