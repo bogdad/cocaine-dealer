@@ -83,20 +83,20 @@ dealer_t::policy_for_service(const std::string& service_alias) {
 }
 
 size_t
-dealer_t::unsent_count(const std::string& service_alias) {
-    return m_impl->unsent_count(service_alias);
+dealer_t::survivors_count(const std::string& service_alias) {
+    return m_impl->survivors_count(service_alias);
 }
 
 void
-dealer_t::load_unsent(const std::string& service_alias,
-                      std::vector<message_t>& messages)
+dealer_t::load_survivors(const std::string& service_alias,
+                         std::vector<message_t>& messages)
 {
-    m_impl->load_unsent(service_alias, messages);
+    m_impl->load_survivors(service_alias, messages);
 }
 
 void
-dealer_t::remove_unsent(const message_t& message) {
-    m_impl->remove_unsent(message);   
+dealer_t::remove_survivor(const message_t& message) {
+    m_impl->remove_survivor(message);   
 }
 
 } // namespace dealer

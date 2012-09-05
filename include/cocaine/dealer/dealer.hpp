@@ -88,10 +88,10 @@ public:
 		return send_message(reinterpret_cast<const void*>(buffer.data()), buffer.size(), path);
 	}
 
-	size_t unsent_count(const std::string& service_alias);
-	void remove_unsent(const message_t& message);
-	void load_unsent(const std::string& service_alias,
-					 std::vector<message_t>& messages);
+	size_t survivors_count(const std::string& service_alias);
+	void remove_survivor(const message_t& message);
+	void load_survivors(const std::string& service_alias,
+						std::vector<message_t>& messages);
 
 	message_policy_t policy_for_service(const std::string& service_alias);
 	

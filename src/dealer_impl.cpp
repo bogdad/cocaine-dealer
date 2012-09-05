@@ -296,7 +296,7 @@ dealer_impl_t::create_message(const void* data,
 }
 
 size_t
-dealer_impl_t::unsent_count(const std::string& service_alias) {
+dealer_impl_t::survivors_count(const std::string& service_alias) {
 	if (config()->message_cache_type() != PERSISTENT) {
 		return 0;
 	}
@@ -306,7 +306,7 @@ dealer_impl_t::unsent_count(const std::string& service_alias) {
 }
 
 void
-dealer_impl_t::load_unsent(const std::string& service_alias,
+dealer_impl_t::load_survivors(const std::string& service_alias,
 						   std::vector<message_t>& messages)
 {
 	if (config()->message_cache_type() != PERSISTENT) {
@@ -337,7 +337,7 @@ dealer_impl_t::load_unsent(const std::string& service_alias,
 }
 
 void
-dealer_impl_t::remove_unsent(const message_t& message) {
+dealer_impl_t::remove_survivor(const message_t& message) {
 	if (config()->message_cache_type() != PERSISTENT) {
 		return;
 	}

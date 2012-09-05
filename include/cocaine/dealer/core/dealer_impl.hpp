@@ -95,9 +95,10 @@ public:
 
 	message_policy_t policy_for_service(const std::string& service_alias);
 
-	size_t unsent_count(const std::string& service_alias);
-	void load_unsent(const std::string& service_alias, std::vector<message_t>& messages);
-	void remove_unsent(const message_t& message);
+	size_t survivors_count(const std::string& service_alias);
+	void remove_survivor(const message_t& message);
+	void load_survivors(const std::string& service_alias,
+						std::vector<message_t>& messages);
 
 private:	
 	void connect();
