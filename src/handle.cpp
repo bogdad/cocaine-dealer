@@ -165,6 +165,10 @@ handle_t::dispatch_messages() {
 
 void
 handle_t::remove_from_persistent_storage(const boost::shared_ptr<response_chunk_t>& response) {
+	if (config()->message_cache_type() != PERSISTENT) {
+		return;
+	}
+
 	boost::shared_ptr<message_iface> sent_msg;
 
 	if (false == m_message_cache->get_sent_message(response->route, response->uuid, sent_msg)) {

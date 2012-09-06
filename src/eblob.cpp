@@ -37,7 +37,7 @@ eblob_t::eblob_t(const std::string& path,
 	m_thread_pool_size(thread_pool_size),
 	dealer_object_t(ctx, logging_enabled)
 {
-	create_eblob(path, blob_size, sync_interval, defrag_timeout, thread_pool_size);
+	create_eblob(path, blob_size, sync_interval, defrag_timeout);
 }
 
 eblob_t::~eblob_t() {
@@ -149,9 +149,7 @@ eblob_t::alive_items_count() {
 
     ctl.priv = this;
     ctl.iterator_cb.iterator = &eblob_t::iteration_callback;
-    ctl.start_type = 0;
-    ctl.max_type = 0;
-    ctl.thread_num = DEFAULT_THREAD_POOL_SIZE;
+    ctl.thread_num = m_thread_pool_size;
 
     m_storage->iterate(ctl);
 
@@ -159,11 +157,7 @@ eblob_t::alive_items_count() {
 }
 
 void
-eblob_t::iterate(iteration_callback_t callback,
-				 int start_column,
-				 int end_column,
-				 int thread_pool_size)
-{
+eblob_t::iterate(iteration_callback_t callback) {
 	if (!callback) {
 		return;
 	}
@@ -175,9 +169,7 @@ eblob_t::iterate(iteration_callback_t callback,
 
     ctl.priv = this;
     ctl.iterator_cb.iterator = &eblob_t::iteration_callback;
-    ctl.start_type = start_column;
-    ctl.max_type = end_column;
-    ctl.thread_num = thread_pool_size;
+    ctl.thread_num = m_thread_pool_size;
 
     m_storage->iterate(ctl);
 }
@@ -186,8 +178,7 @@ void
 eblob_t::create_eblob(const std::string& path,
 					  uint64_t blob_size,
 					  int sync_interval,
-					  int defrag_timeout,
-					  int thread_pool_size)
+					  int defrag_timeout)
 {
 	m_path = path;
 
@@ -202,7 +193,7 @@ eblob_t::create_eblob(const std::string& path,
     cfg.sync = sync_interval;
     cfg.blob_size = blob_size;
     cfg.defrag_timeout = defrag_timeout;
-    cfg.iterate_threads = 1;
+    cfg.iterate_threads = m_thread_pool_size;
 
     // create eblob
     m_storage.reset(new ioremap::eblob::eblob(&cfg));

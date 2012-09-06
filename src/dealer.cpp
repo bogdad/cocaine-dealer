@@ -83,20 +83,25 @@ dealer_t::policy_for_service(const std::string& service_alias) {
 }
 
 size_t
-dealer_t::survivors_count(const std::string& service_alias) {
-    return m_impl->survivors_count(service_alias);
+dealer_t::stored_messages_count(const std::string& service_alias) {
+    return m_impl->stored_messages_count(service_alias);
 }
 
 void
-dealer_t::load_survivors(const std::string& service_alias,
-                         std::vector<message_t>& messages)
+dealer_t::remove_stored_message(const message_t& message) {
+    m_impl->remove_stored_message(message);   
+}
+
+void
+dealer_t::remove_stored_message_for(const response_ptr_t& response) {
+    m_impl->remove_stored_message_for(response);
+}
+
+void
+dealer_t::get_stored_messages(const std::string& service_alias,
+                              std::vector<message_t>& messages)
 {
-    m_impl->load_survivors(service_alias, messages);
-}
-
-void
-dealer_t::remove_survivor(const message_t& message) {
-    m_impl->remove_survivor(message);   
+    m_impl->get_stored_messages(service_alias, messages);
 }
 
 } // namespace dealer

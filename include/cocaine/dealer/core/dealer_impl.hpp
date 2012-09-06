@@ -95,10 +95,11 @@ public:
 
 	message_policy_t policy_for_service(const std::string& service_alias);
 
-	size_t survivors_count(const std::string& service_alias);
-	void remove_survivor(const message_t& message);
-	void load_survivors(const std::string& service_alias,
-						std::vector<message_t>& messages);
+	size_t stored_messages_count(const std::string& service_alias);
+	void remove_stored_message(const message_t& message);
+	void remove_stored_message_for(const response_ptr_t& response);
+	void get_stored_messages(const std::string& service_alias,
+							 std::vector<message_t>& messages);
 
 private:	
 	void connect();

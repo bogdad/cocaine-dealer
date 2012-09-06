@@ -66,10 +66,7 @@ public:
 	unsigned long long items_count();
 	unsigned long long alive_items_count();
 
-	void iterate(iteration_callback_t iteration_callback,
-				 int start_column = 0,
-				 int end_column = 99999,
-				 int thread_pool_size = DEFAULT_THREAD_POOL_SIZE);
+	void iterate(iteration_callback_t callback);
 
 public:
 	static const uint64_t DEFAULT_BLOB_SIZE = 2147483648;	// 2 gb
@@ -81,8 +78,7 @@ private:
 	void create_eblob(const std::string& path,
 		  			  uint64_t blob_size,
 		  			  int sync_interval,
-		  			  int defrag_timeout,
-		  			  int thread_pool_size);
+		  			  int defrag_timeout);
 
 	static int iteration_callback(eblob_disk_control* dc,
 								 eblob_ram_control* rc,

@@ -296,7 +296,7 @@ dealer_impl_t::create_message(const void* data,
 }
 
 size_t
-dealer_impl_t::survivors_count(const std::string& service_alias) {
+dealer_impl_t::stored_messages_count(const std::string& service_alias) {
 	if (config()->message_cache_type() != PERSISTENT) {
 		return 0;
 	}
@@ -306,8 +306,8 @@ dealer_impl_t::survivors_count(const std::string& service_alias) {
 }
 
 void
-dealer_impl_t::load_survivors(const std::string& service_alias,
-						   std::vector<message_t>& messages)
+dealer_impl_t::get_stored_messages(const std::string& service_alias,
+								   std::vector<message_t>& messages)
 {
 	if (config()->message_cache_type() != PERSISTENT) {
 		return;
@@ -331,13 +331,13 @@ dealer_impl_t::load_survivors(const std::string& service_alias,
 
 	eblob_t::iteration_callback_t callback;
 	callback = boost::bind(&dealer_impl_t::storage_iteration_callback, this, _1, _2, _3, _4);
-	blob->iterate(callback, 0, 0);
+	blob->iterate(callback);
 
 	m_messages_ptr = NULL;
 }
 
 void
-dealer_impl_t::remove_survivor(const message_t& message) {
+dealer_impl_t::remove_stored_message(const message_t& message) {
 	if (config()->message_cache_type() != PERSISTENT) {
 		return;
 	}
@@ -345,6 +345,10 @@ dealer_impl_t::remove_survivor(const message_t& message) {
 	boost::shared_ptr<eblob_t> blob;
 	blob = this->context()->storage()->get_eblob(message.path.service_alias);
 	blob->remove_all(message.id);
+}
+
+void
+dealer_impl_t::remove_stored_message_for(const response_ptr_t& response) {
 }
 
 void

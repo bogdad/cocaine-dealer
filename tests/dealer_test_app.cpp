@@ -43,9 +43,8 @@ void worker(dealer_t* d,
 			std::vector<int>* dealer_messages_count,
 			int dealer_index)
 {
-	message_path_t path("rimz_app", "rimz_func");
-	//message_path_t path("testing", "method3");
-	//message_path_t path("dummy", "hash");
+	//message_path_t path("rimz_app", "rimz_func");
+	message_path_t path("dummy", "hash");
 	std::string payload = "response chunk: ";
 
 	while ((*dealer_messages_count)[dealer_index] >= 0) {
@@ -58,7 +57,7 @@ void worker(dealer_t* d,
 
 			data_container data;
 			while (resp->get(&data)) {
-				//std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+				std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 			}
 		}
 		catch (const dealer_error& err) {
@@ -173,7 +172,6 @@ main(int argc, char** argv) {
 
 	return EXIT_SUCCESS;
 	*/
-
 	/*
 	dealer_t			d("tests/config.json");
 	message_path_t		path("rimz.*", "rimz_func");

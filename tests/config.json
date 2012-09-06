@@ -1,6 +1,6 @@
 {
 	"version" : 1,
-	"use_persistense" : true,
+	"use_persistense" : false,
 	"logger" :
 	{
 		"type" : "STDOUT_LOGGER",
@@ -15,9 +15,9 @@
 	{
 		"eblob_path" : "/var/tmp/eblobs",
 		"blob_size" : 2048,
-		"sync_interval" : 3,
-		"thread_pool_size" : 16,
-		"defrag_timeout" : 9999999
+		"sync_interval" : 0,
+		"thread_pool_size" : 4,
+		"defrag_timeout" : 600
 	},
 
 	"services" :
@@ -30,6 +30,7 @@
 			},
 			"policy" : {
 				"urgent" : 0,
+				"persistent" : true,
 				"deadline" : 5.0,
 				"timeout" : 3.000,
 				"max_retries" : 13

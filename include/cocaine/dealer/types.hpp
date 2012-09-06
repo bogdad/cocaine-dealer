@@ -57,7 +57,7 @@ enum error_code {
 };
 
 enum domain {
-    acknowledgement = 1,
+    acknowledgement = 0,
     chunk,
     error,
     choke
