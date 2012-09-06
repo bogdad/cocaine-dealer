@@ -340,12 +340,14 @@ balancer_t::receive(boost::shared_ptr<response_chunk_t>& response) {
 				return false;
 			}
 		    obj.convert(&error_code);
+		    response->error_code = error_code;
 
 			// receive error message
 			if (!nutils::recv_zmq_message(*m_socket, chunk, obj)) {
 				return false;
 			}
 		    obj.convert(&error_message);
+		    response->error_message = error_message;
 		}
 		break;
 
