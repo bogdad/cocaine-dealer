@@ -355,7 +355,7 @@ configuration_t::parse_basic_settings(const Json::Value& config_value) {
 	m_default_message_deadline = static_cast<unsigned long long>(deadline_value.asInt());
 
 
-	bool use_persistense = config_value.get("use_persistense", defaults_t::message_cache_type).asBool();
+	bool use_persistense = config_value.get("use_persistense", false).asBool();
 	
 	if (use_persistense) {
 		m_message_cache_type = PERSISTENT;

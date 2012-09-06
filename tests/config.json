@@ -1,6 +1,5 @@
 {
 	"version" : 1,
-	"use_persistense" : false,
 	"logger" :
 	{
 		"type" : "STDOUT_LOGGER",
@@ -9,15 +8,6 @@
 		//"type" : "FILE_LOGGER",
 		//"file" : "/home/rimz/dealer.log",
 		//"flags" : "PLOG_ALL | PLOG_INTRO"
-	},
-
-	"persistent_storage" :
-	{
-		"eblob_path" : "/var/tmp/eblobs",
-		"blob_size" : 2048,
-		"sync_interval" : 0,
-		"thread_pool_size" : 4,
-		"defrag_timeout" : 600
 	},
 
 	"services" :
