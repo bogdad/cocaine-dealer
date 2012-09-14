@@ -1,0 +1,43 @@
+Source: cocaine-dealer
+Section: utils
+Priority: extra
+Maintainer: Rim Zaidullin <rimz@yandex-team.ru>
+Build-Depends:
+ cdbs,
+ debhelper (>= 7.0.13),
+ libzmq-dev (>= 2.2.0+yandex1),
+ libmsgpack-dev,
+ libboost-dev,
+ libboost-filesystem-dev,
+ libboost-thread-dev,
+ libboost-program-options-dev,
+ libssl-dev,
+ uuid-dev,
+ eblob (>= 0.17.2),
+ cmake,
+ libcurl4-openssl-dev,
+ yandex-git-cdbs
+Standards-Version: 3.9.1
+Vcs-Git: git://github.com/cocaine/cocaine-dealer.git
+Vcs-Browser: https://github.com/cocaine/cocaine-dealer
+
+Package: libcocaine-dealer1
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends}
+Provides: libcocaine-dealer
+Replaces: libcocaine-dealer
+Description: Cocaine - Dealer
+ Cocaine scheduler and persistent transport.
+
+Package: libcocaine-dealer-dev
+Architecture: any
+Section: libdevel
+Depends: 
+ ${shlibs:Depends},
+ ${misc:Depends},
+ libcocaine-dealer1 (= ${Source-Version})
+Description: Cocaine - Dealer Development Files
+ Files needed to use Cocaine Dealer in development.
+
