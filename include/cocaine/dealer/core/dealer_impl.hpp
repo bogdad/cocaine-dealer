@@ -134,6 +134,7 @@ private:
 	bool m_is_dead;
 
 	// tmp var to fill with unsent data. used in eblob iterator method (this is god awful code, needs proper fix)
+	boost::mutex m_messages_ptr_mutex;
 	std::vector<message_t>* m_messages_ptr;
 };
 
