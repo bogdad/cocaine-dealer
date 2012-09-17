@@ -1,0 +1,5 @@
+cocaine-dealer (0.9.1) lucid; urgency=low
+
+  * Debianization is back.
+
+ -- Andrey Sibiryov <kobolog@yandex-team.ru>  Thu, 14 Sep 2012 15:30:00 +0400
