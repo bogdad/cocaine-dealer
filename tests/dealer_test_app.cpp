@@ -57,7 +57,7 @@ void worker(dealer_t* d,
 
 			data_container data;
 			while (resp->get(&data)) {
-				std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
+				//std::cout << std::string(reinterpret_cast<const char*>(data.data()), 0, data.size()) << std::endl;
 			}
 		}
 		catch (const dealer_error& err) {
