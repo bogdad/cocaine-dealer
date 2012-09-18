@@ -388,6 +388,7 @@ dealer_impl_t::storage_iteration_callback(const std::string& key,
     msg.data.set_data(msg_data.data(), msg_data.size());
 
     if (m_messages_ptr) {
+		boost::mutex::scoped_lock lock(m_messages_ptr_mutex);
     	m_messages_ptr->push_back(msg);
 	}
 }
