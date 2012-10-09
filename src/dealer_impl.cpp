@@ -367,6 +367,7 @@ dealer_impl_t::storage_iteration_callback(const std::string& key,
 
     // init unpacker
 	msgpack::unpacker pac(size);
+	pac.reserve_buffer(size);
 	memcpy(pac.buffer(), data, size);
 	pac.buffer_consumed(size);
 
