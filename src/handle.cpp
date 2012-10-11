@@ -185,6 +185,24 @@ handle_t::remove_from_persistent_storage(const boost::shared_ptr<response_chunk_
 }
 
 void
+handle_t::remove_from_persistent_storage(const std::string& uuid,
+										 const message_policy_t& policy,
+										 const std::string& alias)
+{
+	if (config()->message_cache_type() != PERSISTENT) {
+		return;
+	}
+
+	if (false == policy.persistent) {
+		return;
+	}
+
+	// remove message from eblob
+	boost::shared_ptr<eblob_t> eb = context()->storage()->get_eblob(alias);
+	eb->remove_all(uuid);
+}
+
+void
 handle_t::dispatch_next_available_response(balancer_t& balancer) {
 	boost::shared_ptr<response_chunk_t> response;
 
@@ -353,6 +371,10 @@ handle_t::process_deadlined_messages() {
 				response->error_message = "server did not reply with ack in time";
 				enqueue_response(response);
 
+				remove_from_persistent_storage(response->uuid,
+											   expired_messages.at(i)->policy(),
+											   expired_messages.at(i)->path().service_alias);
+
 				if (log_flag_enabled(PLOG_WARNING)) {
 					std::string log_str = "reshedule message policy exceeded, did not receive ACK ";
 					log_str += "for %s, (enqued: %s, sent: %s, curr: %s)";
@@ -372,6 +394,10 @@ handle_t::process_deadlined_messages() {
 			response->error_code = deadline_error;
 			response->error_message = "message expired in service's handle";
 			enqueue_response(response);
+
+			remove_from_persistent_storage(response->uuid,
+										   expired_messages.at(i)->policy(),
+										   expired_messages.at(i)->path().service_alias);
 
 			if (log_flag_enabled(PLOG_ERROR)) {
 				std::string log_str = "deadline policy exceeded, for message %s, (enqued: %s, sent: %s, curr: %s)";
