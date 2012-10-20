@@ -89,17 +89,19 @@ void
 balancer_t::update_endpoints(const std::vector<cocaine_endpoint_t>& endpoints,
 							 std::vector<cocaine_endpoint_t>& missing_endpoints)
 {
-	std::vector<cocaine_endpoint_t> endpoints_tmp = endpoints;
-	std::sort(endpoints_tmp.begin(), endpoints_tmp.end());
+	std::vector<cocaine_endpoint_t> incoming_endpoints = endpoints;
+	std::sort(incoming_endpoints.begin(), incoming_endpoints.end());
 
-	if (m_endpoints.size() == endpoints_tmp.size()) {
-		if (std::equal(m_endpoints.begin(), m_endpoints.end(), endpoints_tmp.begin())) {
+	if (m_endpoints.size() == incoming_endpoints.size()) {
+		if (std::equal(m_endpoints.begin(),
+					   m_endpoints.end(),
+					   incoming_endpoints.begin())) {
 			return;
 		}
 	}
 
 	std::vector<cocaine_endpoint_t> new_endpoints;
-	get_endpoints_diff(endpoints, new_endpoints, missing_endpoints);
+	get_endpoints_diff(incoming_endpoints, new_endpoints, missing_endpoints);
 
 	if (!missing_endpoints.empty()) {
 
@@ -121,22 +123,23 @@ balancer_t::update_endpoints(const std::vector<cocaine_endpoint_t>& endpoints,
 		}
 	}
 
-	m_endpoints = endpoints;
+	m_endpoints = incoming_endpoints;
 }
 
 void
-balancer_t::get_endpoints_diff(const std::vector<cocaine_endpoint_t>& updated_endpoints,
+balancer_t::get_endpoints_diff(const std::vector<cocaine_endpoint_t>& incoming_endpoints,
 							   std::vector<cocaine_endpoint_t>& new_endpoints,
 							   std::vector<cocaine_endpoint_t>& missing_endpoints)
 {
-	for (size_t i = 0; i < updated_endpoints.size(); ++i) {
-		if (false == std::binary_search(m_endpoints.begin(), m_endpoints.end(), updated_endpoints[i])) {
-			new_endpoints.push_back(updated_endpoints[i]);
+	// assume m_endpoints and incoming_endpoints are sorted
+	for (size_t i = 0; i < incoming_endpoints.size(); ++i) {
+		if (false == std::binary_search(m_endpoints.begin(), m_endpoints.end(), incoming_endpoints[i])) {
+			new_endpoints.push_back(incoming_endpoints[i]);
 		}
 	}
 
 	for (size_t i = 0; i < m_endpoints.size(); ++i) {
-		if (false == std::binary_search(updated_endpoints.begin(), updated_endpoints.end(), m_endpoints[i])) {
+		if (false == std::binary_search(incoming_endpoints.begin(), incoming_endpoints.end(), m_endpoints[i])) {
 			missing_endpoints.push_back(m_endpoints[i]);
 		}
 	}

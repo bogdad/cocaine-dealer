@@ -1,3 +1,9 @@
+cocaine-dealer (0.9.5) lucid; urgency=low
+
+  * bugfix in balancer, method update_endpoints didn't handle endpoints correctly 
+
+ -- Rim Zaidullin <rimz@yandex-team.ru>  Sat, 20 Oct 2012 04:05:00 +0400
+
 cocaine-dealer (0.9.4) lucid; urgency=low
 
   * Debianization is back.
